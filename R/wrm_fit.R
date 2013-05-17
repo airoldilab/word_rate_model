@@ -1,21 +1,13 @@
-library("plyr")
-library("foreach")
-library("doParallel")
-#workers <- makeCluster(4) # My computer has 4 cores
-#registerDoParallel(workers)
-
-# Function to initialize parallel computation
-init.parallel <- function(cores){
-  #workers <- makeCluster(cores)
-  #registerDoParallel(workers)
-  registerDoParallel(cores)
-}
-
 
 wrm.fit <- function(
-             # data.frame with columns d,f,count
-             wc,
-             # Vector of document lengths
+             # Vector of obs word counts
+             wc.obs,
+             # Vector of doc ids for word counts
+             d.index,
+             # Vector of word ids for word counts
+             f.index,
+             # Labeled vector of document lengths
+             # Length 'D' and 
              doc.length.vec,
              # Number of topics
              ntopics,
@@ -23,24 +15,28 @@ wrm.fit <- function(
              beta=1,alpha=0.05,psi=1,
              # Iterations
              iter=100,burnin=0,
-             # Parallel computation?
-             parallel=FALSE,
              verbose=FALSE){
 
   # Model inputs
-  doc.ids <- unique(wc$d)
-  word.ids <- unique(wc$f)
+  doc.ids <- unique(d.index)
+  word.ids <- unique(f.index)
   D <- length(doc.ids)
   V <- length(word.ids)
+  Q <- length(d.index)
+  d.index <- factor(d.index)
+  f.index <- factor(f.index)
 
   # Initalize augmented word count array
-  wc$id <- rownames(wc)
-  wc.aug <- ddply(.data=wc,.variables="id",.fun=multi.init.draw,
-                  count.col="count",ntopics=ntopics,.parallel=parallel)
-  wc.aug$rate <- 1
+  wc.aug <- multi.init.draw(obs.count=wc.obs,ntopics=ntopics)
 
   # Initialize theta matrix
   theta.mat <- matrix(1/ntopics,ncol=ntopics,nrow=D)
+
+  # Get linear operator for topic-specific counts
+  A.d <- t(sparse.model.matrix(~ factor(d.index) + 0))
+  rownames(A.d) <- levels(d.index)
+  A.f <- t(sparse.model.matrix(~ factor(f.index) + 0))
+  rownames(A.f) <- levels(f.index)
 
   for(i in 1:iter){
 
@@ -51,31 +47,25 @@ wrm.fit <- function(
     }
 
     # Get new wfk VxK matrix
-    wfk.mat <- daply(.data=wc.aug,.variables=c("f","k"),
-                    .fun=acount.sum,.parallel=parallel)
+    wfk.mat <- A.f%*%wc.aug
     # Get new wdk DxK matrix
-    wdk.mat <- daply(.data=wc.aug,.variables=c("d","k"),
-                    .fun=acount.sum,.parallel=parallel)
+    wdk.mat <- A.d%*%wc.aug
     
-    # Draw the rates as function of wfk.vec
+    # Get VxK matrix of rates from wfk.mat
     lambda.mat <- lambda.mat.draw(wfk.mat=wfk.mat,psi=psi,
                                   doc.length.vec=doc.length.vec,
                                   theta.mat=theta.mat,beta=beta,
                                   ntopics=ntopics)
-    theta.mat <- theta.mat.draw(wdk.mat=wdk.mat,theta.mat=theta.mat,alpha=alpha,
-                                ntopics=ntopics)
+    # Get DxK matrix of memberships from wdk.mat
+    theta.mat <- theta.mat.draw(wdk.mat=wdk.mat,theta.mat=theta.mat,
+                                alpha=alpha,ntopics=ntopics)
     
     # Compute wfdk rates based on lambda and theta matrices
-    # Get new wfk VxK matrix
-    wc.aug <- ddply(.data=wc.aug,.variables=c("f","d"),
-                    .fun=get.fdk.rate,lambda.mat=lambda.mat,
-                    theta.mat=theta.mat,.parallel=parallel)
+    rate.mat <- mapply(function(d,f){theta.mat[d,]*lambda.mat[f,]},
+                       d=d.index,f=f.index)
     
     # Redraw augmented word counts
-    wc.aug <- ddply(.data=wc.aug,.variables=c("d","f"),
-                    .fun=multi.draw,prob.col="rate",
-                    count.col="count",aug.count.col="acount",
-                    .parallel=parallel)
+    wc.aug <- multi.draw(Q,wc.obs,rate.mat)
 
     # Update posterior mean
     if(i > burnin){
@@ -105,21 +95,15 @@ wrm.fit <- function(
 
 
 # Function to draw 
-multi.draw <- function(dframe,prob.col,count.col,aug.count.col){
-  dframe[,aug.count.col] <-
-    rmultinom(n=1,size=dframe[,count.col][1],prob=dframe[,prob.col])
-  return(dframe)
+multi.draw <- function(Q,wc.obs,rate.mat){
+  out <- sapply(1:Q,function(q){rmultinom(n=1,size=wc.obs[q],
+                                          prob=rate.mat[,q])})
+  return(t(out))
 }
 
-multi.init.draw <- function(dframe,ntopics,count.col){
-  out.multi <- rmultinom(n=1,size=dframe[,count.col][1],prob=rep(1,ntopics))
-  out <- as.data.frame(cbind(dframe,k=1:ntopics,acount=out.multi))
-  return(out)
-}
-
-acount.sum <- function(dframe){
-  out <- sum(dframe$acount)
-  return(out)
+multi.init.draw <- function(obs.count,ntopics){
+  out <- sapply(obs.count,rmultinom,n=1,prob=rep(1,ntopics))
+  return(t(out))
 }
 
 
