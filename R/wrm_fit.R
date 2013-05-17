@@ -15,6 +15,8 @@ wrm.fit <- function(
              beta=1,alpha=0.05,psi=1,
              # Iterations
              iter=100,burnin=0,
+             # Parameter tracing
+             nwords.trace=NULL,ndocs.trace=NULL,
              verbose=FALSE){
 
   # Model inputs
@@ -25,6 +27,7 @@ wrm.fit <- function(
   Q <- length(d.index)
   d.index <- factor(d.index)
   f.index <- factor(f.index)
+  ndraws.store <- iter - burnin
 
   # Initalize augmented word count array
   wc.aug <- multi.init.draw(obs.count=wc.obs,ntopics=ntopics)
@@ -69,10 +72,21 @@ wrm.fit <- function(
 
     # Update posterior mean
     if(i > burnin){
-      if(i==(burnin + 1)){ave.param.list <- list(lambda.mat=lambda.mat,theta.mat=theta.mat)
-      } else {ave.param.list <- update.ave.params(i=1,ave.param.list=ave.param.list,
-                                                  lambda.mat=lambda.mat,theta.mat=theta.mat,
-                                                  burnin=burnin)
+      if(i==(burnin + 1)){
+        final.param.list <- setup.final.param.list(lambda.mat=lambda.mat,theta.mat=theta.mat,
+                                                   doc.ids=doc.ids,word.ids=word.ids,
+                                                   ndraws.store=ndraws.store,D=D,V=V,ntopics=ntopics,
+                                                   nwords.trace=nwords.trace,
+                                                   ndocs.trace=ndocs.trace)
+        final.param.list <- update.final.param.list(pos=1,lambda.mat=lambda.mat,theta.mat=theta.mat,
+                                                    final.param.list=final.param.list)
+        ave.param.list <- list(lambda.mat=lambda.mat,theta.mat=theta.mat)
+      } else {
+        pos <- i-burnin
+        final.param.list <- update.final.param.list(pos=pos,lambda.mat=lambda.mat,theta.mat=theta.mat,
+                                                    final.param.list=final.param.list)
+        ave.param.list <- update.ave.params(pos=pos,ave.param.list=ave.param.list,
+                                            lambda.mat=lambda.mat,theta.mat=theta.mat)
             }
     }
 
@@ -87,7 +101,7 @@ wrm.fit <- function(
   }
 
   # Return posterior draws of lambda and theta matrices
-  out.list <- ave.param.list
+  out.list <- list(ave.param.list=ave.param.list,final.param.list=final.param.list)
 
   return(out.list)
 
@@ -139,12 +153,52 @@ get.fdk.rate <- function(dframe,lambda.mat,theta.mat){
   return(dframe)
 }
 
+# Function to set up list to store sample of posterior draws
+setup.final.param.list <- function(lambda.mat,theta.mat,doc.ids,word.ids,
+                                   ndraws.store,D,V,ntopics,nwords.trace=NULL,
+                                   ndocs.trace=NULL){
+  
+  if(!is.null(nwords.trace)){
+    # Pick random sample of words to store if requested
+    word.ids.trace <- sample(x=word.ids,size=nwords.trace,replace=FALSE)
+  } else {
+    nwords.trace <- V
+    word.ids.trace <- word.ids
+  }
+  
+  # Pick random sample of docs to store if requested
+  if(!is.null(ndocs.trace)){
+    doc.ids.trace <- sample(x=doc.ids,size=ndocs.trace,replace=FALSE)
+  } else {
+    ndocs.trace <- D
+    doc.ids.trace <- doc.ids
+  }
 
-# Function to update posterior expectation of parameters
-update.ave.params <- function(i,ave.param.list,lambda.mat,theta.mat,burnin){
+  final.param.list <- list()
+  final.param.list$lambda.mat <- array(NA,dim=c(nwords.trace,ntopics,ndraws.store),
+                                       dimnames=list(word.ids.trace,1:ntopics,NULL))
+  final.param.list$theta.mat <- array(NA,dim=c(ndocs.trace,ntopics,ndraws.store),
+                                       dimnames=list(doc.ids.trace,1:ntopics,NULL))
+  
+  return(final.param.list)
+}
+
+# Function to update sample of posterior draws
+update.final.param.list <- function(pos,lambda.mat,theta.mat,final.param.list){
+  
+  words.trace <- dimnames(final.param.list$lambda.mat)[[1]]
+  final.param.list$lambda.mat[,,pos] <- lambda.mat[words.trace,]
+  docs.trace <- dimnames(final.param.list$theta.mat)[[1]]
+  final.param.list$theta.mat[,,pos] <- theta.mat[docs.trace,]
+
+  return(final.param.list)
+}
+
+
+# Function to update posterior expectation
+update.ave.params <- function(pos,ave.param.list,lambda.mat,theta.mat){
 
   # Get relative weights
-  pos <- i-burnin
   weight.current <- (pos-1)/pos
   weight.new <- 1/pos
   
@@ -155,5 +209,7 @@ update.ave.params <- function(i,ave.param.list,lambda.mat,theta.mat,burnin){
 
   return(ave.param.list)
 }
+
+
 
 sprintft <- function(x,...){return(paste(date(),": ",sprintf(x,...),sep=""))}

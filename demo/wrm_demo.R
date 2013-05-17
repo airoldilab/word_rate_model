@@ -7,8 +7,8 @@ file.out <- paste0(out.dir,"wrm_out.RData")
 library(Matrix)
 
 ntopics <- 10
-#d.use <- 2246
-d.use <- "all"
+d.use <- 10
+#d.use <- "all"
 #wc.all <- scan(file=data.file,sep="\t",
 #               what=as.list(integer(3)))
 wc.all <- read.table(file=data.file,sep="\t",
@@ -38,7 +38,9 @@ wrm.out <- wrm.fit(
              ntopics=ntopics,
              # Iterations
              iter=10,burnin=0,
+             ndocs.trace=10,nwords.trace=10,
              verbose=TRUE)
 save(wrm.out,file=file.out)
-round(head(wrm.out$lambda.mat),5)
-round(head(wrm.out$theta.mat),5)
+round(head(wrm.out$ave.param.list$lambda.mat),5)
+round(head(wrm.out$ave.param.list$theta.mat),5)
+plot(wrm.out$final.param.list$lambda.mat[2,1,],type="b")
