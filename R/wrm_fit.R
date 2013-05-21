@@ -59,6 +59,13 @@ wrm.fit <- function(
                                   doc.length.vec=doc.length.vec,
                                   theta.mat=theta.mat,beta=beta,
                                   ntopics=ntopics)
+
+    # Get mu matrix as function of the lambdas
+    mu.mat <- log(lambda.mat)
+    
+    # Get VxK matrix of phis as a function of the lambdas
+    phi.mat <- get.phi.mat(lambda.mat)
+    
     # Get DxK matrix of memberships from wdk.mat
     theta.mat <- theta.mat.draw(wdk.mat=wdk.mat,theta.mat=theta.mat,
                                 alpha=alpha,ntopics=ntopics)
@@ -73,20 +80,21 @@ wrm.fit <- function(
     # Update posterior mean
     if(i > burnin){
       if(i==(burnin + 1)){
-        final.param.list <- setup.final.param.list(lambda.mat=lambda.mat,theta.mat=theta.mat,
-                                                   doc.ids=doc.ids,word.ids=word.ids,
+        final.param.list <- setup.final.param.list(mu.mat=mu.mat,theta.mat=theta.mat,
+                                                   phi.mat=phi.mat,doc.ids=doc.ids,word.ids=word.ids,
                                                    ndraws.store=ndraws.store,D=D,V=V,ntopics=ntopics,
                                                    nwords.trace=nwords.trace,
                                                    ndocs.trace=ndocs.trace)
-        final.param.list <- update.final.param.list(pos=1,lambda.mat=lambda.mat,theta.mat=theta.mat,
-                                                    final.param.list=final.param.list)
-        ave.param.list <- list(lambda.mat=lambda.mat,theta.mat=theta.mat)
+        final.param.list <- update.final.param.list(pos=1,mu.mat=mu.mat,theta.mat=theta.mat,
+                                                    phi.mat=phi.mat,final.param.list=final.param.list)
+        ave.param.list <- list(mu.mat=mu.mat,theta.mat=theta.mat,phi.mat=phi.mat)
       } else {
         pos <- i-burnin
-        final.param.list <- update.final.param.list(pos=pos,lambda.mat=lambda.mat,theta.mat=theta.mat,
-                                                    final.param.list=final.param.list)
+        final.param.list <- update.final.param.list(pos=pos,mu.mat=mu.mat,theta.mat=theta.mat,
+                                                    phi.mat=phi.mat,final.param.list=final.param.list)
         ave.param.list <- update.ave.params(pos=pos,ave.param.list=ave.param.list,
-                                            lambda.mat=lambda.mat,theta.mat=theta.mat)
+                                            mu.mat=mu.mat,theta.mat=theta.mat,
+                                            phi.mat=phi.mat)
             }
     }
 
@@ -101,7 +109,7 @@ wrm.fit <- function(
   }
 
   # Return posterior draws of lambda and theta matrices
-  out.list <- list(ave.param.list=ave.param.list,final.param.list=final.param.list)
+  out.list <- list(ave.param.list=ave.param.list,final.param.list=final.param.list,ntopics=ntopics)
 
   return(out.list)
 
@@ -153,8 +161,14 @@ get.fdk.rate <- function(dframe,lambda.mat,theta.mat){
   return(dframe)
 }
 
+# Function to calculate phis as a function of the lambdas
+get.phi.mat <- function(lambda.mat){
+  phi.mat <- t(apply(lambda.mat,1,function(row){row/sum(row)}))
+  return(phi.mat)
+}
+
 # Function to set up list to store sample of posterior draws
-setup.final.param.list <- function(lambda.mat,theta.mat,doc.ids,word.ids,
+setup.final.param.list <- function(mu.mat,theta.mat,phi.mat,doc.ids,word.ids,
                                    ndraws.store,D,V,ntopics,nwords.trace=NULL,
                                    ndocs.trace=NULL){
   
@@ -175,7 +189,9 @@ setup.final.param.list <- function(lambda.mat,theta.mat,doc.ids,word.ids,
   }
 
   final.param.list <- list()
-  final.param.list$lambda.mat <- array(NA,dim=c(nwords.trace,ntopics,ndraws.store),
+  final.param.list$mu.mat <- array(NA,dim=c(nwords.trace,ntopics,ndraws.store),
+                                       dimnames=list(word.ids.trace,1:ntopics,NULL))
+  final.param.list$phi.mat <- array(NA,dim=c(nwords.trace,ntopics,ndraws.store),
                                        dimnames=list(word.ids.trace,1:ntopics,NULL))
   final.param.list$theta.mat <- array(NA,dim=c(ndocs.trace,ntopics,ndraws.store),
                                        dimnames=list(doc.ids.trace,1:ntopics,NULL))
@@ -184,10 +200,12 @@ setup.final.param.list <- function(lambda.mat,theta.mat,doc.ids,word.ids,
 }
 
 # Function to update sample of posterior draws
-update.final.param.list <- function(pos,lambda.mat,theta.mat,final.param.list){
+update.final.param.list <- function(pos,mu.mat,theta.mat,phi.mat,
+                                    final.param.list){
   
-  words.trace <- dimnames(final.param.list$lambda.mat)[[1]]
-  final.param.list$lambda.mat[,,pos] <- lambda.mat[words.trace,]
+  words.trace <- dimnames(final.param.list$mu.mat)[[1]]
+  final.param.list$mu.mat[,,pos] <- mu.mat[words.trace,]
+  final.param.list$phi.mat[,,pos] <- phi.mat[words.trace,]
   docs.trace <- dimnames(final.param.list$theta.mat)[[1]]
   final.param.list$theta.mat[,,pos] <- theta.mat[docs.trace,]
 
@@ -196,14 +214,17 @@ update.final.param.list <- function(pos,lambda.mat,theta.mat,final.param.list){
 
 
 # Function to update posterior expectation
-update.ave.params <- function(pos,ave.param.list,lambda.mat,theta.mat){
+update.ave.params <- function(pos,ave.param.list,mu.mat,theta.mat,
+                              phi.mat){
 
   # Get relative weights
   weight.current <- (pos-1)/pos
   weight.new <- 1/pos
   
-  ave.param.list$lambda.mat <- weight.current*ave.param.list$lambda.mat +
-    weight.new*lambda.mat
+  ave.param.list$mu.mat <- weight.current*ave.param.list$mu.mat +
+    weight.new*mu.mat
+  ave.param.list$phi.mat <- weight.current*ave.param.list$phi.mat +
+    weight.new*phi.mat
   ave.param.list$theta.mat <- weight.current*ave.param.list$theta.mat +
     weight.new*theta.mat
 
@@ -212,4 +233,4 @@ update.ave.params <- function(pos,ave.param.list,lambda.mat,theta.mat){
 
 
 
-sprintft <- function(x,...){return(paste(date(),": ",sprintf(x,...),sep=""))}
+sprintft <- function(x,...){return(paste0(date(),": ",sprintf(x,...)))}
