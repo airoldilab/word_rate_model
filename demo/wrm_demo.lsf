@@ -7,8 +7,23 @@
 #BSUB -u jbischof@fas.harvard.edu
 
 # THE JOB ARRAY:
-#BSUB -J "wrm_demo"
+#BSUB -J "wrm_demo[1-4]"
 
-# THE COMMAND TO GIVE TO R, CHANGE TO THE APPROPRIATE FILENAME:
-R --vanilla --no-save < wrm_demo.R
+# BASH CODE THAT YOU WANT TO RUN:
+# Figure out the number of topics for the job index
+declare -a ntopics_list=(10 25 50 100)
+job_index=$(expr ${LSB_JOBINDEX} - 1)
+ntopics=${ntopics_list[$job_index]}
+# output_dir=/n/airoldifs2/lab/jbischof/word_rate_output/run_k${ntopics}/
+# 
+# # Make the output directory if it already doesn't exist
+# if [ ! -d $output_dir ]
+#    then
+#       mkdir $output_dir
+# fi
+# 
+# output_dir=/n/airoldifs2/lab/jbischof/word_rate_output/
+iter=1000
+debug=0
 
+Rscript wrm_demo.R $ntopics $iter $debug

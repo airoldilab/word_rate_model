@@ -17,7 +17,7 @@ trace.wrm <- function(wrm.out,type="word",pos=1){
   # Plot traces of doc or word's parameters
   cols.use <- rainbow(ntopics)
   plot(trace.data[1,],type="l",xlab="Iteration",col=cols.use[1],
-       ylim=c(min(trace.data),max(trace.data)))
+       ylim=c(min(trace.data),max(trace.data)),ylab=paste(type,"parameters"))
   for(j in 2:ntopics){
     lines(trace.data[j,],col=cols.use[j],type="l",xlab="Iteration")
   }

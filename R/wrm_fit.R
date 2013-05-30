@@ -17,6 +17,8 @@ wrm.fit <- function(
              iter=100,burnin=0,
              # Parameter tracing
              nwords.trace=NULL,ndocs.trace=NULL,
+             # Save output every 100 iters?
+             file.out=NULL,
              verbose=FALSE){
 
   # Model inputs
@@ -79,7 +81,8 @@ wrm.fit <- function(
 
     # Update posterior mean
     if(i > burnin){
-      if(i==(burnin + 1)){
+      pos <- i-burnin
+      if(pos==1){
         final.param.list <- setup.final.param.list(mu.mat=mu.mat,theta.mat=theta.mat,
                                                    phi.mat=phi.mat,doc.ids=doc.ids,word.ids=word.ids,
                                                    ndraws.store=ndraws.store,D=D,V=V,ntopics=ntopics,
@@ -89,13 +92,18 @@ wrm.fit <- function(
                                                     phi.mat=phi.mat,final.param.list=final.param.list)
         ave.param.list <- list(mu.mat=mu.mat,theta.mat=theta.mat,phi.mat=phi.mat)
       } else {
-        pos <- i-burnin
         final.param.list <- update.final.param.list(pos=pos,mu.mat=mu.mat,theta.mat=theta.mat,
                                                     phi.mat=phi.mat,final.param.list=final.param.list)
         ave.param.list <- update.ave.params(pos=pos,ave.param.list=ave.param.list,
                                             mu.mat=mu.mat,theta.mat=theta.mat,
                                             phi.mat=phi.mat)
             }
+
+      # Save parameters to output file if requested
+      if(all(!is.null(file.out),pos %% 100 == 0)){
+        out.list <- list(ave.param.list=ave.param.list,final.param.list=final.param.list,ntopics=ntopics)
+        save(out.list,file=file.out)
+      }
     }
 
     # Print iteration time
