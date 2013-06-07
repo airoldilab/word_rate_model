@@ -24,6 +24,22 @@ trace.wrm <- function(wrm.out,type="word",pos=1){
   
 }
 
+trace.hparam <- function(wrm.out,type="alpha"){
+  if(type=="alpha"){
+    trace.data <- wrm.out$final.param.list$alpha
+  } else if(type=="beta"){
+    trace.data <- wrm.out$final.param.list$beta
+  } else if(type=="psi"){
+    trace.data <- wrm.out$final.param.list$psi
+  }
+
+  # Plot trace and hist of hyperparameter
+  par(mfrow=c(1,2))
+  plot(trace.data,type="l",xlab="Iteration",ylab=type,
+       main=paste(type,"traceplot"))
+  hist(trace.data,xlab=type,freq=FALSE,main=paste(type,"posterior histogram"))
+}
+
 # Load in logit function
 logit <- function(x){log(x)-log(1-x)}
 

@@ -13,6 +13,12 @@ wrm.fit <- function(
              ntopics,
              # Hyperparameters
              beta=1,alpha=0.05,psi=1,
+             # Priors for hyperparameters
+             nu.alpha=NULL,tau.alpha=NULL,
+             nu.beta=NULL,tau.beta=NULL,
+             nu.psi=NULL,tau.psi=NULL,
+             # Should hyperparameters be inferred?
+             hparam.draw=TRUE,
              # Iterations
              iter=100,burnin=0,
              # Parameter tracing
@@ -30,13 +36,13 @@ wrm.fit <- function(
   d.index <- factor(d.index)
   f.index <- factor(f.index)
   ndraws.store <- iter - burnin
-
+  
   # Initalize augmented word count array
   wc.aug <- multi.init.draw(obs.count=wc.obs,ntopics=ntopics)
-
+  
   # Initialize theta matrix
   theta.mat <- matrix(1/ntopics,ncol=ntopics,nrow=D)
-
+  
   # Get linear operator for topic-specific counts
   A.d <- t(sparse.model.matrix(~ factor(d.index) + 0))
   rownames(A.d) <- levels(d.index)
@@ -71,6 +77,20 @@ wrm.fit <- function(
     # Get DxK matrix of memberships from wdk.mat
     theta.mat <- theta.mat.draw(wdk.mat=wdk.mat,theta.mat=theta.mat,
                                 alpha=alpha,ntopics=ntopics)
+
+    # Resample hyperparameters if requested
+    if(hparam.draw){
+      alpha <- metroh.alpha(alpha.old=alpha,theta.mat=theta.mat,
+                            nu=nu.alpha,tau=tau.alpha,
+                            prop.var=0.005,ndraw=100,last.draw=TRUE)
+      beta <- metroh.alpha(alpha.old=beta,theta.mat=phi.mat,
+                            nu=nu.beta,tau=tau.beta,
+                            prop.var=0.005,ndraw=100,last.draw=TRUE)
+      # Get sigma vector for psi draw
+      sigma.vec <- apply(lambda.mat,1,sum)
+      psi <- draw.psi(sigma.vec=sigma.vec,kappa=ntopics*beta,
+                      nu=nu.psi,tau=tau.psi,ndraw=1)
+    }
     
     # Compute wfdk rates based on lambda and theta matrices
     rate.mat <- mapply(function(d,f){theta.mat[d,]*lambda.mat[f,]},
@@ -85,19 +105,26 @@ wrm.fit <- function(
       if(pos==1){
         final.param.list <- setup.final.param.list(mu.mat=mu.mat,theta.mat=theta.mat,
                                                    phi.mat=phi.mat,doc.ids=doc.ids,word.ids=word.ids,
+                                                   hparam.draw=hparam.draw,alpha=alpha,beta=beta,psi=psi,
                                                    ndraws.store=ndraws.store,D=D,V=V,ntopics=ntopics,
-                                                   nwords.trace=nwords.trace,
-                                                   ndocs.trace=ndocs.trace)
+                                                   nwords.trace=nwords.trace,ndocs.trace=ndocs.trace)
         final.param.list <- update.final.param.list(pos=1,mu.mat=mu.mat,theta.mat=theta.mat,
-                                                    phi.mat=phi.mat,final.param.list=final.param.list)
+                                                    phi.mat=phi.mat,final.param.list=final.param.list,
+                                                    hparam.draw=hparam.draw,alpha=alpha,beta=beta,psi=psi)
         ave.param.list <- list(mu.mat=mu.mat,theta.mat=theta.mat,phi.mat=phi.mat)
+        if(hparam.draw){
+          ave.param.list$alpha <- alpha
+          ave.param.list$beta <- beta
+          ave.param.list$psi <- psi
+        }
       } else {
         final.param.list <- update.final.param.list(pos=pos,mu.mat=mu.mat,theta.mat=theta.mat,
-                                                    phi.mat=phi.mat,final.param.list=final.param.list)
+                                                    phi.mat=phi.mat,final.param.list=final.param.list,
+                                                    hparam.draw=hparam.draw,alpha=alpha,beta=beta,psi=psi)
         ave.param.list <- update.ave.params(pos=pos,ave.param.list=ave.param.list,
-                                            mu.mat=mu.mat,theta.mat=theta.mat,
-                                            phi.mat=phi.mat)
-            }
+                                            mu.mat=mu.mat,theta.mat=theta.mat,phi.mat=phi.mat,
+                                            hparam.draw=hparam.draw,alpha=alpha,beta=beta,psi=psi)
+      }
 
       # Save parameters to output file if requested
       if(all(!is.null(file.out),pos %% 100 == 0)){
@@ -177,8 +204,9 @@ get.phi.mat <- function(lambda.mat){
 
 # Function to set up list to store sample of posterior draws
 setup.final.param.list <- function(mu.mat,theta.mat,phi.mat,doc.ids,word.ids,
-                                   ndraws.store,D,V,ntopics,nwords.trace=NULL,
-                                   ndocs.trace=NULL){
+                                   ndraws.store,D,V,ntopics,
+                                   hparam.draw=FALSE,alpha=NULL,beta=NULL,psi=NULL,
+                                   nwords.trace=NULL,ndocs.trace=NULL){
   
   if(!is.null(nwords.trace)){
     # Pick random sample of words to store if requested
@@ -203,13 +231,21 @@ setup.final.param.list <- function(mu.mat,theta.mat,phi.mat,doc.ids,word.ids,
                                        dimnames=list(word.ids.trace,1:ntopics,NULL))
   final.param.list$theta.mat <- array(NA,dim=c(ndocs.trace,ntopics,ndraws.store),
                                        dimnames=list(doc.ids.trace,1:ntopics,NULL))
+
+  if(hparam.draw){
+    final.param.list$alpha <- rep(NA,ndraws.store)
+    final.param.list$beta <- rep(NA,ndraws.store)
+    final.param.list$psi <- rep(NA,ndraws.store)
+  }
   
   return(final.param.list)
 }
 
 # Function to update sample of posterior draws
 update.final.param.list <- function(pos,mu.mat,theta.mat,phi.mat,
-                                    final.param.list){
+                                    final.param.list,
+                                    hparam.draw=FALSE,alpha=NULL,
+                                    beta=NULL,psi=NULL){
   
   words.trace <- dimnames(final.param.list$mu.mat)[[1]]
   final.param.list$mu.mat[,,pos] <- mu.mat[words.trace,]
@@ -217,13 +253,20 @@ update.final.param.list <- function(pos,mu.mat,theta.mat,phi.mat,
   docs.trace <- dimnames(final.param.list$theta.mat)[[1]]
   final.param.list$theta.mat[,,pos] <- theta.mat[docs.trace,]
 
+  if(hparam.draw){
+    final.param.list$alpha[pos] <- alpha
+    final.param.list$beta[pos] <- beta
+    final.param.list$psi[pos] <- psi
+  }
+
   return(final.param.list)
 }
 
 
 # Function to update posterior expectation
 update.ave.params <- function(pos,ave.param.list,mu.mat,theta.mat,
-                              phi.mat){
+                              phi.mat,hparam.draw=FALSE,alpha=NULL,
+                              beta=NULL,psi=NULL){
 
   # Get relative weights
   weight.current <- (pos-1)/pos
@@ -235,6 +278,16 @@ update.ave.params <- function(pos,ave.param.list,mu.mat,theta.mat,
     weight.new*phi.mat
   ave.param.list$theta.mat <- weight.current*ave.param.list$theta.mat +
     weight.new*theta.mat
+
+  if(hparam.draw){
+    ave.param.list$alpha <- weight.current*ave.param.list$alpha +
+      weight.new*alpha
+    ave.param.list$beta <- weight.current*ave.param.list$beta +
+      weight.new*beta
+    ave.param.list$psi <- weight.current*ave.param.list$psi +
+      weight.new*psi
+  }
+
 
   return(ave.param.list)
 }

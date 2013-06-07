@@ -1,6 +1,7 @@
 src.dir <- "../R/"
 source(paste0(src.dir,"wrm_fit.R"))
 source(paste0(src.dir,"wrm_analyze.R"))
+source(paste0(src.dir,"hparam_sample.R"))
 input.dir <- "/n/airoldifs2/lab/jbischof/word_rate_output/"
 data.file <- paste0(input.dir,"ap_ragarray.txt")
 doc.length.file <- paste0(input.dir,"ap_doclengths.txt")
@@ -14,7 +15,8 @@ debug.mode <- length(c.args) == 0
 ntopics <- as.numeric(c.args[1])
 iter <- as.numeric(c.args[2])
 debug <- as.logical(as.numeric(c.args[3]))
-run.tag <- paste0("_k",ntopics,"_i",iter)
+debug.tag <- ifelse(debug,"_debug","")
+run.tag <- paste0("_k",ntopics,"_i",iter,debug.tag)
 out.dir <- paste0(input.dir,"run",run.tag,"/")
 dir.create(out.dir, showWarnings = FALSE)
 file.out <- paste0(out.dir,"wrm_out.RData")
@@ -58,6 +60,8 @@ wrm.out <- wrm.fit(
              doc.length.vec=doc.length.vec,
              # Number of topics
              ntopics=ntopics,
+             # Should hyperparameters be inferred?
+             hparam.draw=TRUE,
              # Iterations
              iter=iter+burnin,burnin=burnin,
              ndocs.trace=50,nwords.trace=50,
@@ -86,6 +90,7 @@ plot.dir <- paste0(out.dir,"plots/")
 dir.create(plot.dir, showWarnings = FALSE)
 
 # Check that model converged
+# Obs level latent variables
 nitems.trace <- 15
 for(i in 1:nitems.trace){
   file.wordtrace <- paste0(plot.dir,"word_trace",i,".pdf")
@@ -99,6 +104,13 @@ for(i in 1:nitems.trace){
   dev.off()
   pdf(file.exctrace,width=10,height=6)
   trace.wrm(wrm.out,type="exc",pos=i)
+  dev.off()
+}
+# Hyperparameters
+for(hparam in c("alpha","beta","psi")){
+  file.htrace <- paste0(plot.dir,hparam,"_trace.pdf")
+  pdf(file.htrace,width=12,height=6)
+  trace.hparam(wrm.out,type=hparam)
   dev.off()
 }
 

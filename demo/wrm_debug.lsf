@@ -1,0 +1,18 @@
+#!/bin/bash
+
+# DESIRED QUEUE
+#BSUB -q airoldi
+
+# EDIT THE EMAIL-ADDRESS BELOW TO YOUR FAS EMAIL:
+#BSUB -u jbischof@fas.harvard.edu
+
+# THE JOB ARRAY:
+#BSUB -J "wrm_debug"
+
+# BASH CODE THAT YOU WANT TO RUN:
+# Figure out the number of topics for the job index
+ntopics=10
+iter=1000
+debug=1
+
+Rscript wrm_demo.R $ntopics $iter $debug

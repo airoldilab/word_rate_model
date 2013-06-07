@@ -18,13 +18,18 @@ log.prior.alpha <- function(alpha,nu,tau){
 # Combines evidence from simplicial vectors with Gamma(nu,tau) prior
 log.post.alpha <- function(alpha,ltheta.sum,nu,tau,N,K){
   log.like <- log.like.alpha(alpha=alpha,ltheta.sum=ltheta.sum,N=N,K=K)
-  log.prior <- log.prior.alpha(alpha=alpha,nu=nu,tau=tau)
+  if(any(is.null(nu),is.null(tau))){
+    log.prior <- 0
+  } else {
+    log.prior <- log.prior.alpha(alpha=alpha,nu=nu,tau=tau)
+  }
   log.post <- log.like + log.prior
   return(log.post)
 }
 
 # Metropolis sampler for alpha
-metroh.alpha <- function(alpha.old,theta.mat,nu,tau,prop.var=1,ndraw=1){
+metroh.alpha <- function(alpha.old,theta.mat,nu,tau,prop.var=1,
+                         ndraw=1,last.draw=FALSE){
   alpha.out <- rep(NA,ndraw)
   ltheta.mat.raw <- log(theta.mat)
   ltheta.mat <- max(ltheta.mat.raw,-700)
@@ -37,13 +42,28 @@ metroh.alpha <- function(alpha.old,theta.mat,nu,tau,prop.var=1,ndraw=1){
     # Get Metropolis ratio
     lp.old <- log.post.alpha(alpha=alpha.old,ltheta.sum=ltheta.sum,nu=nu,tau=tau,N=N,K=K)
     lp.cand <- log.post.alpha(alpha=alpha.cand,ltheta.sum=ltheta.sum,nu=nu,tau=tau,N=N,K=K)
-    r <- lp.cand + log(alpha.cand) - lp.old - log(alpha.old)
+    r <- lp.cand - lp.old + log(alpha.cand) - log(alpha.old)
     accept <- r > log(runif(1))
     if(accept) {alpha <- alpha.cand} else {alpha <- alpha.old}
     alpha.out[i] <- alpha
     alpha.old <- alpha
   }
 
+  if(last.draw){alpha.out <- alpha.out[ndraw]}
+
   return(alpha.out)
 }
 
+# Conjugate sampler for gamma rate parameter
+# Data sigma_{f} ~ Gamma(kappa,psi), kappa known
+# A prioir, psi ~ Gamma(nu,tau)
+draw.psi <- function(sigma.vec,kappa,nu,tau,ndraw=1){
+  V <- length(sigma.vec)
+  # Deal with NULL hyperparams
+  if(is.null(nu)){nu <- 0}
+  if(is.null(tau)){tau <- 0}
+  shape.psi <- V*kappa + nu
+  rate.psi <- tau + sum(sigma.vec)
+  psi.new <- rgamma(n=ndraw,shape=shape.psi,rate=rate.psi)
+  return(psi.new)
+}
