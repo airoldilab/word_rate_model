@@ -14,7 +14,8 @@ c.args <- commandArgs(TRUE)
 debug.mode <- length(c.args) == 0
 ntopics <- as.numeric(c.args[1])
 iter <- as.numeric(c.args[2])
-debug <- as.logical(as.numeric(c.args[3]))
+burnin <- as.numeric(c.args[3])
+debug <- as.logical(as.numeric(c.args[4]))
 debug.tag <- ifelse(debug,"_debug","")
 run.tag <- paste0("_k",ntopics,"_i",iter,debug.tag)
 out.dir <- paste0(input.dir,"run",run.tag,"/")
@@ -24,10 +25,8 @@ file.out <- paste0(out.dir,"wrm_out.RData")
 
 if(debug){
   d.use <- 50
-  burnin <- 0
 } else {
   d.use <- "all"
-  burnin <- 1500
 }
 #wc.all <- scan(file=data.file,sep="\t",
 #               what=as.list(integer(3)))

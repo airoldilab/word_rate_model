@@ -13,6 +13,7 @@
 # Figure out the number of topics for the job index
 ntopics=10
 iter=1000
+burnin=0
 debug=1
 
-Rscript wrm_demo.R $ntopics $iter $debug
+Rscript wrm_demo.R $ntopics $iter $burnin $debug
