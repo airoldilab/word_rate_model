@@ -33,7 +33,7 @@ metroh.alpha <- function(alpha.old,theta.mat,nu,tau,prop.var=1,
   alpha.out <- rep(NA,ndraw)
   ltheta.mat.raw <- log(theta.mat)
   ltheta.mat <- max(ltheta.mat.raw,-700)
-  ltheta.sum <- sum(log(theta.mat))
+  ltheta.sum <- sum(log(theta.mat),na.rm=TRUE)
   N <- nrow(theta.mat)
   K <- ncol(theta.mat)
   for(i in 1:ndraw){
@@ -43,7 +43,8 @@ metroh.alpha <- function(alpha.old,theta.mat,nu,tau,prop.var=1,
     lp.old <- log.post.alpha(alpha=alpha.old,ltheta.sum=ltheta.sum,nu=nu,tau=tau,N=N,K=K)
     lp.cand <- log.post.alpha(alpha=alpha.cand,ltheta.sum=ltheta.sum,nu=nu,tau=tau,N=N,K=K)
     r <- lp.cand - lp.old + log(alpha.cand) - log(alpha.old)
-    accept <- r > log(runif(1))
+    if(any(is.nan(r),is.na(r))){accept <- FALSE
+    } else {accept <- r > log(runif(1))}
     if(accept) {alpha <- alpha.cand} else {alpha <- alpha.old}
     alpha.out[i] <- alpha
     alpha.old <- alpha
