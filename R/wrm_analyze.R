@@ -1,9 +1,9 @@
-# Function to get word loadings in each topic
+## Function to get word loadings in each topic
 
-# Function to check convergence of Gibbs sampler
+## Function to check convergence of Gibbs sampler
 trace.wrm <- function(wrm.out,type="word",pos=1){
   
-  # Grab trace of desired doc or word parameters
+  ## Grab trace of desired doc or word parameters
   if(type=="word"){
     trace.data <- wrm.out$final.param.list$mu.mat[pos,,]
   } else if (type=="doc"){
@@ -14,7 +14,7 @@ trace.wrm <- function(wrm.out,type="word",pos=1){
 
   ntopics <- nrow(trace.data)
 
-  # Plot traces of doc or word's parameters
+  ## Plot traces of doc or word's parameters
   cols.use <- rainbow(ntopics)
   plot(trace.data[1,],type="l",xlab="Iteration",col=cols.use[1],
        ylim=c(min(trace.data),max(trace.data)),ylab=paste(type,"parameters"))
@@ -33,43 +33,51 @@ trace.hparam <- function(wrm.out,type="alpha"){
     trace.data <- wrm.out$final.param.list$psi
   }
 
-  # Plot trace and hist of hyperparameter
+  ## Plot trace and hist of hyperparameter
   par(mfrow=c(1,2))
   plot(trace.data,type="l",xlab="Iteration",ylab=type,
        main=paste(type,"traceplot"))
   hist(trace.data,xlab=type,freq=FALSE,main=paste(type,"posterior histogram"))
 }
 
-# Load in logit function
+## Load in logit function
 logit <- function(x){log(x)-log(1-x)}
 
-# Function to calculate frex score
+## Function to calculate frex score
 frex.score <- function(freq.quant,exc.quant,weight.freq=0.5){
   score <- 1/(weight.freq/freq.quant + (1-weight.freq)/exc.quant)
   return(score)
 }
 
-get.word.loadings <- function(wrm.out,type="frex",weight.freq=0.5){
 
-  # Retrieve relevant model output 
-  mu.mat <- wrm.out$ave.param.list$mu.mat
-  logit.phi.mat <- logit(wrm.out$ave.param.list$phi.mat)
-  ntopics <- ncol(mu.mat)
+get.word.loadings <- function(wrm.out=NULL,rate.mat=NULL,exc.mat=NULL,
+                              type="frex",weight.freq=0.5){
 
-  # Get cdf rankings for each word in each topic
-  mu.quant.mat <- apply(mu.mat,2,function(col){ecdf(col)(col)})
-  if(type=="freq"){return(mu.quant.mat)}
-  phi.quant.mat <- apply(logit.phi.mat,2,function(col){ecdf(col)(col)})
-  if(type=="exc"){return(phi.quant.mat)}
+  ## Retrieve relevant model output
+  if(!is.null(wrm.out)){
+    rate.mat <- wrm.out$ave.param.list$mu.mat
+    exc.mat <- wrm.out$ave.param.list$phi.mat
+  }
 
-  # Calculate matrix of frex scores
+  ## Get cdf rankings for each word in each topic
+  if(any(type=="freq",type=="frex")){
+    rate.quant.mat <- apply(rate.mat,2,function(col){ecdf(col)(col)})
+    if(type=="freq"){return(rate.quant.mat)}
+  }
+  if(any(type=="exc",type=="frex")){
+    exc.quant.mat <- apply(exc.mat,2,function(col){ecdf(col)(col)})
+    if(type=="exc"){return(exc.quant.mat)}
+  }
+  
+  ## Calculate matrix of frex scores
+  ntopics <- ncol(rate.mat)
   frex.mat <- sapply(1:ntopics,function(k){
-    frex.score(mu.quant.mat[,k],phi.quant.mat[,k],weight.freq)})
+    frex.score(rate.quant.mat[,k],exc.quant.mat[,k],weight.freq)})
   
   return(frex.mat)
 }
 
-# Function to get the top items in any vector
+## Function to get the top items in any vector
 get.top.items <- function(vec,vec.labels,n.get){
   vec.order <- rev(order(vec))
   pos.top <- vec.order[1:n.get]
@@ -77,21 +85,21 @@ get.top.items <- function(vec,vec.labels,n.get){
   return(items.top)
 }
 
-# Function to find top-loading words in each topic
+## Function to find top-loading words in each topic
 get.top.words <- function(wrm.out,n.get,vocab,type="frex",weight.freq=0.5){
 
-  # Get word ids
+  ## Get word ids
   word.ids <- rownames(wrm.out$ave.param.list$mu.mat)
   
-  # Get desired word scores
+  ## Get desired word scores
   score.mat <- get.word.loadings(wrm.out=wrm.out,type=type,
                                  weight.freq=weight.freq)
 
-  # Get word ids for top loading items in each topic
+  ## Get word ids for top loading items in each topic
   top.ids.mat <- t(apply(score.mat,2,get.top.items,
                          vec.labels=word.ids,n.get=n.get))
 
-  # Get word strings for top ids
+  ## Get word strings for top ids
   top.words.mat <- t(apply(top.ids.mat,2,function(col){
     vocab[as.character(col)]}))
 
@@ -99,20 +107,20 @@ get.top.words <- function(wrm.out,n.get,vocab,type="frex",weight.freq=0.5){
 }
 
 
-# Get FREX plot for each topic
+## Get FREX plot for each topic
 get.frex.plot <- function(wrm.out,vocab,
                           plot.dir,
                           lower.quant.cut.full=0.01,
                           upper.quant.zoom=0.95,
-                          # Plot parameters
+                          ## Plot parameters
                           res.plot=200,
                           size.inch=8){
 
-  # Get freq and exc word scores
+  ## Get freq and exc word scores
   mu.mat <- wrm.out$ave.param.list$mu.mat
   logit.phi.mat <- logit(wrm.out$ave.param.list$phi.mat)
 
-  # Get word ids and ntopics
+  ## Get word ids and ntopics
   word.ids <- rownames(wrm.out$ave.param.list$mu.mat)
   ntopics <- ncol(mu.mat)
 
@@ -121,23 +129,23 @@ get.frex.plot <- function(wrm.out,vocab,
     logit.phi.vec <- logit.phi.mat[,j]
     names(mu.vec) <- names(logit.phi.vec) <- rownames(mu.mat)
     
-    # Get quantiles of each dimension
+    ## Get quantiles of each dimension
     quant.mu <- quantile(mu.vec,probs=c(lower.quant.cut.full,
                                   upper.quant.zoom))
     quant.phi <- quantile(logit.phi.vec,probs=c(lower.quant.cut.full,
                                           upper.quant.zoom))
 
     
-    # Set up plot data
+    ## Set up plot data
 
-    # Throw away very lowest points to keep full plot clean
+    ## Throw away very lowest points to keep full plot clean
     mu.keep.full <- mu.vec > quant.mu[1]
     phi.keep.full <- logit.phi.vec > quant.phi[1]
     index.keep.full <- apply(cbind(mu.keep.full,phi.keep.full),1,all)
     mu.vec.full <- mu.vec[index.keep.full]
     logit.phi.vec.full <- logit.phi.vec[index.keep.full]
     
-    # Get zoom plots - all points in top 5% of both dimensions
+    ## Get zoom plots - all points in top 5% of both dimensions
     mu.keep.zoom <- mu.vec > quant.mu[2]
     phi.keep.zoom <- logit.phi.vec > quant.phi[2]
     index.keep.zoom <- apply(cbind(mu.keep.zoom,phi.keep.zoom),1,all)
@@ -146,14 +154,14 @@ get.frex.plot <- function(wrm.out,vocab,
     ids.zoom <- word.ids[index.keep.zoom]
     labels.zoom <- vocab[ids.zoom]
 
-    # Get plot parameters
+    ## Get plot parameters
     lim.mu <- range(mu.vec.zoom)
     mar.mu <- (lim.mu[2]-lim.mu[1])*0.04
     lim.phi <- range(logit.phi.vec.zoom)
     mar.phi <- (lim.phi[2]-lim.phi[1])*0.04
     baseline <- logit(1/ntopics)
 
-    # Create zoom plot
+    ## Create zoom plot
     cex.plot <- 0.6
     title.plot <- paste("Upper 5% of FREX plot for topic",j)
     title.png <- paste(plot.dir,"fe_zoom_plot_",j,".png",sep="")
@@ -174,8 +182,8 @@ get.frex.plot <- function(wrm.out,vocab,
        xlab=expression(paste("Frequency: ",mu[fk])),cex=0.5)
     rect(xleft=quant.mu[2],
          ybottom=quant.phi[2],
-         #xright=lim.mu[2]+mar.mu,
-         #ytop=lim.phi[2]+mar.phi,
+         ##xright=lim.mu[2]+mar.mu,
+         ##ytop=lim.phi[2]+mar.phi,
          xright=max(mu.vec)+mar.mu,
          ytop=max(logit.phi.vec)+mar.phi,
          density = NULL, angle = 45,
@@ -187,3 +195,75 @@ get.frex.plot <- function(wrm.out,vocab,
     dev.off()
   }
 }
+
+
+## Function to calculate variance of word-topic loadings
+topic.dist.var <- function(score.mat){
+  out.vec <- apply(score.mat,1,var)
+  return(out.vec)
+}
+
+topic.dist.entropy <- function(score.mat){
+  out.vec <- apply(score.mat,1,entropy.dist)
+  return(out.vec)
+}
+
+## Function to ensure log probability dist is normalized
+norm.log.prob <- function(log.prob.vec){
+  out <- log.prob.vec - log(sum(exp(log.prob.vec)))
+  return(out)
+}
+                             
+
+## Function to calculate entropy of dist
+entropy.dist <- function(log.prob.vec){
+  prob.vec <- exp(log.prob.vec)
+  entropy <- sum(prob.vec*log.prob.vec)
+  return(entropy)
+}
+
+## Function to calculate KL divergence between two dists
+kl.dist <- function(log.prob.vec1,log.prob.vec2){
+  prob.vec1 <- exp(log.prob.vec1)
+  kl.out <- sum((log.prob.vec1 - log.prob.vec2)*prob.vec1)
+  return(kl.dist)
+}
+
+## Function to calculate Hellinger distance between two dists
+hel.dist <- function(log.prob.vec1,log.prob.vec2){
+  # Make sure distributions normalized
+  log.prob.vec1 <- log.prob.vec1 - log(sum(exp(log.prob.vec1))
+  sqrt.prob.vec1 <- sqrt(exp(log.prob.vec1))
+  sqrt.prob.vec2 <- sqrt(exp(log.prob.vec2))
+  hel.out <- sqrt(sum((sqrt.prob.vec1-sqrt.prob.vec2)^2))/sqrt(2)
+  return(hel.out)
+}
+
+## Function to calculate all pairwise distances between vectors in a matrix
+## using one as the baseline
+comp.dist.mat <- function(log.prob.mat,fun.compare,which.baseline=1){
+  ncompare <- ncol(log.prob.mat) - 1
+  log.prob.baseline <- log.prob.mat[,which.baseline]
+  log.prob.compare <- log.prob.mat[,-which.baseline]
+  out.vec <- apply(log.prob.compare,2,fun.compare,
+                   log.prob.vec1=log.prob.baseline)
+  return(out.vec)
+}
+
+## Function to alternate baseline dists for comp.dist.mat
+comp.dist.all <- function(log.prob.mat,fun.comare){
+  ## Make sure log probabilities are normalized
+  log.prob.mat <- apply(log.prob.mat,2,norm.log.prob)
+  ntopics <- ncol(log.prob.mat)
+  out.mat <- sapply(1:ntopics,comp.dist.mat,fun.compare=fun.compare,
+                    log.prob.mat=log.prob.mat)
+  return(out.mat)
+}
+
+## entropy.dist <- function(prob.vec){
+##   log.prob <- log(prob.vec,base=2)
+##   # Correct for any zero probabilities
+##   which.zero <- which(sapply(log.prob,function(z){identical(z,-Inf)}))
+##   log.prob[which.zero] <- 0
+##   entropy <- sum(
+## }
