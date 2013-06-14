@@ -197,14 +197,23 @@ get.frex.plot <- function(wrm.out,vocab,
 }
 
 
+## Functions to compute concentration of word-topic scores as a
+## function of marginal word rates
+
 ## Function to calculate variance of word-topic loadings
+## Should be done on unrestricted scale
 topic.dist.var <- function(score.mat){
   out.vec <- apply(score.mat,1,var)
   return(out.vec)
 }
 
-topic.dist.entropy <- function(score.mat){
-  out.vec <- apply(score.mat,1,entropy.dist)
+topic.dist.max <- function(score.mat){
+  out.vec <- apply(score.mat,1,max)
+  return(out.vec)
+}
+
+topic.dist.entropy <- function(score.mat,logp=TRUE){
+  out.vec <- apply(score.mat,1,entropy.dist,logp=logp)
   return(out.vec)
 }
 
@@ -216,11 +225,23 @@ norm.log.prob <- function(log.prob.vec){
                              
 
 ## Function to calculate entropy of dist
-entropy.dist <- function(log.prob.vec){
-  prob.vec <- exp(log.prob.vec)
-  entropy <- sum(prob.vec*log.prob.vec)
+entropy.dist <- function(prob.vec,logp=TRUE){
+  if(logp==TRUE){
+    log.prob.vec <- norm.log.prob(prob.vec)
+    abs.prob.vec <- exp(log.prob.vec)
+  } else {
+    prob.vec <- prob.vec/sum(prob.vec)
+    log.prob.vec <- log(prob.vec)
+    log.prob.vec[log.prob.vec == -Inf] <- 0
+    abs.prob.vec <- prob.vec
+  }
+  entropy <- sum(abs.prob.vec*log.prob.vec)
   return(entropy)
 }
+
+
+# Distance comparison functions
+# Coded in terms of log distributions
 
 ## Function to calculate KL divergence between two dists
 kl.dist <- function(log.prob.vec1,log.prob.vec2){
@@ -232,7 +253,7 @@ kl.dist <- function(log.prob.vec1,log.prob.vec2){
 ## Function to calculate Hellinger distance between two dists
 hel.dist <- function(log.prob.vec1,log.prob.vec2){
   # Make sure distributions normalized
-  log.prob.vec1 <- log.prob.vec1 - log(sum(exp(log.prob.vec1))
+  log.prob.vec1 <- log.prob.vec1 - log(sum(exp(log.prob.vec1)))
   sqrt.prob.vec1 <- sqrt(exp(log.prob.vec1))
   sqrt.prob.vec2 <- sqrt(exp(log.prob.vec2))
   hel.out <- sqrt(sum((sqrt.prob.vec1-sqrt.prob.vec2)^2))/sqrt(2)
@@ -241,7 +262,7 @@ hel.dist <- function(log.prob.vec1,log.prob.vec2){
 
 ## Function to calculate all pairwise distances between vectors in a matrix
 ## using one as the baseline
-comp.dist.mat <- function(log.prob.mat,fun.compare,which.baseline=1){
+comp.dist.mat <- function(which.baseline,log.prob.mat,fun.compare){
   ncompare <- ncol(log.prob.mat) - 1
   log.prob.baseline <- log.prob.mat[,which.baseline]
   log.prob.compare <- log.prob.mat[,-which.baseline]
@@ -251,7 +272,7 @@ comp.dist.mat <- function(log.prob.mat,fun.compare,which.baseline=1){
 }
 
 ## Function to alternate baseline dists for comp.dist.mat
-comp.dist.all <- function(log.prob.mat,fun.comare){
+comp.dist.all <- function(log.prob.mat,fun.compare){
   ## Make sure log probabilities are normalized
   log.prob.mat <- apply(log.prob.mat,2,norm.log.prob)
   ntopics <- ncol(log.prob.mat)
