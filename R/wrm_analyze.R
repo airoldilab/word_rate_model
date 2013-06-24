@@ -1,15 +1,19 @@
 ## Function to get word loadings in each topic
 
 ## Function to check convergence of Gibbs sampler
-trace.wrm <- function(wrm.out,type="word",pos=1){
+trace.wrm <- function(wrm.out,type="word",pos=1,burnin.draws=FALSE){
+
+  ## Should burnin or post-burnin draws be plotted?
+  if(burnin.draws){param.list <- wrm.out$burnin.param.list
+  } else {param.list <- wrm.out$final.param.list}
   
   ## Grab trace of desired doc or word parameters
   if(type=="word"){
-    trace.data <- wrm.out$final.param.list$mu.mat[pos,,]
+    trace.data <- param.list$mu.mat[pos,,]
   } else if (type=="doc"){
-    trace.data <- wrm.out$final.param.list$theta.mat[pos,,]
+    trace.data <- param.list$theta.mat[pos,,]
   } else if (type=="exc"){
-    trace.data <- wrm.out$final.param.list$phi.mat[pos,,]
+    trace.data <- param.list$phi.mat[pos,,]
   }
 
   ntopics <- nrow(trace.data)
@@ -24,13 +28,18 @@ trace.wrm <- function(wrm.out,type="word",pos=1){
   
 }
 
-trace.hparam <- function(wrm.out,type="alpha"){
+trace.hparam <- function(wrm.out,type="alpha",burnin.draws=FALSE){
+  
+  ## Should burnin or post-burnin draws be plotted?
+  if(burnin.draws){param.list <- wrm.out$burnin.param.list
+  } else {param.list <- wrm.out$final.param.list}
+  
   if(type=="alpha"){
-    trace.data <- wrm.out$final.param.list$alpha
+    trace.data <- param.list$alpha
   } else if(type=="beta"){
-    trace.data <- wrm.out$final.param.list$beta
+    trace.data <- param.list$beta
   } else if(type=="psi"){
-    trace.data <- wrm.out$final.param.list$psi
+    trace.data <- param.list$psi
   }
 
   ## Plot trace and hist of hyperparameter
@@ -247,7 +256,7 @@ entropy.dist <- function(prob.vec,logp=TRUE){
 kl.dist <- function(log.prob.vec1,log.prob.vec2){
   prob.vec1 <- exp(log.prob.vec1)
   kl.out <- sum((log.prob.vec1 - log.prob.vec2)*prob.vec1)
-  return(kl.dist)
+  return(kl.out)
 }
 
 ## Function to calculate Hellinger distance between two dists
@@ -272,8 +281,9 @@ comp.dist.mat <- function(which.baseline,log.prob.mat,fun.compare){
 }
 
 ## Function to alternate baseline dists for comp.dist.mat
-comp.dist.all <- function(log.prob.mat,fun.compare){
+comp.dist.all <- function(log.prob.mat,fun.compare,nwords="all"){
   ## Make sure log probabilities are normalized
+  if(!nwords=="all"){log.prob.mat <- log.prob.mat[1:nwords,]}
   log.prob.mat <- apply(log.prob.mat,2,norm.log.prob)
   ntopics <- ncol(log.prob.mat)
   out.mat <- sapply(1:ntopics,comp.dist.mat,fun.compare=fun.compare,

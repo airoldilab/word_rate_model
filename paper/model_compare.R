@@ -40,6 +40,7 @@ for(ntopics in ntopics.vec){
   ##                                        function(col){col/sum(col)})
 }
 dwr.log.frex.list <- lapply(dwr.frex.list,log)
+dwr.log.exc.list <- lapply(dwr.exc.list,log)
 
 ## LDA model
 lda.rate.list <- list()
@@ -81,9 +82,27 @@ lda.exc.max <- lapply(lda.exc.list,topic.dist.max)
 dwr.frex.max <- lapply(dwr.frex.list,topic.dist.max)
 lda.frex.max <- lapply(lda.frex.list,topic.dist.max)
 
+# Create plots of LDA v. FREX exclusivity measurements
+par(mfrow=c(1,2))
+plot(log(margwc),logit(lda.exc.max[["10"]]))
+plot(log(margwc),logit(dwr.exc.max[["10"]]))
+# Need FREX plots for LDA as well to see (non)shrinkage pattern
+plot(log(margwc),lda.exc.max[["100"]])
+plot(log(margwc),lda.exc.max[["100"]])
+
 ## Task 2: Calculate similiarity of word-topic scores
 ## Need to ensure that frex scores sum to one to that is actually a probability measure
-dwr.kl.mat <- lapply(dwr.log.frex.list,FUN=comp.dist.all,fun.compare=kl.dist)
-lda.kl.mat <- lapply(lda.rate.list,comp.dist.all,fun.compare=kl.dist)
-dwr.hel.mat <- lapply(dwr.log.frex.list,comp.dist.all,fun.compare=hel.dist)
-lda.hel.mat <- lapply(lda.rate.list,comp.dist.all,fun.compare=hel.dist)
+dwr.kl.mat <- lapply(dwr.log.frex.list,FUN=comp.dist.all,fun.compare=kl.dist)#,nwords=20)
+lda.kl.mat <- lapply(lda.rate.list,comp.dist.all,fun.compare=kl.dist)#,nwords=20)
+dwr.hel.mat <- lapply(dwr.log.frex.list,comp.dist.all,fun.compare=hel.dist)#,nwords=20)
+lda.hel.mat <- lapply(lda.rate.list,comp.dist.all,fun.compare=hel.dist)#,nwords=20)
+
+dwr.exc.kl <- lapply(dwr.log.exc.list,FUN=comp.dist.all,fun.compare=kl.dist)#,nwords=20)
+dwr.exc.hel <- lapply(dwr.log.exc.list,FUN=comp.dist.all,fun.compare=hel.dist)#,nwords=20)
+
+sapply(dwr.exc.kl,mean)
+sapply(dwr.exc.hel,mean)
+
+
+sapply(lda.kl.mat,mean)
+sapply(lda.hel.mat,mean)

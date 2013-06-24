@@ -1,0 +1,45 @@
+#!/bin/bash
+
+# DESIRED QUEUE
+#BSUB -q airoldi
+
+# FAS EMAIL:
+#BSUB -u jbischof@fas.harvard.edu
+
+# THE JOB ARRAY:
+#BSUB -J "wrm_demo[1-4]"
+
+# OUTPUT AND ERROR FILES
+#BSUB -o /n/airoldifs2/lab/jbischof/word_rate_output/LSF_dump/out_%J.%I
+#BSUB -e /n/airoldifs2/lab/jbischof/word_rate_output/LSF_dump/error_%J.%I
+
+# BASH CODE THAT YOU WANT TO RUN:
+# Figure out the number of topics for the job index
+declare -a ntopics_list=(10 25 50 100)
+declare -a burnin_list=(1500 1500 2000 3000)
+job_index=$(expr ${LSB_JOBINDEX} - 1)
+ntopics=${ntopics_list[$job_index]}
+burnin=${burnin_list[$job_index]}
+iter=1000
+debug=1
+
+# Debug filetag
+if [ $debug -eq 0 ]
+  then debug_tag=
+  else 
+    debug_tag=_debug
+    iter=10
+    burnin=5
+fi  
+
+# Set output directory as a function of run parameters
+main_dir=/n/airoldifs2/lab/jbischof/word_rate_output/
+output_dir=${main_dir}/run_k${ntopics}_i${iter}${debug_tag}/
+
+# Make the output directory if it already doesn't exist
+if [ ! -d $output_dir ]
+   then mkdir $output_dir
+fi
+
+# Run script in R
+Rscript wrm_paper.R $ntopics $iter $burnin $debug $main_dir $output_dir
