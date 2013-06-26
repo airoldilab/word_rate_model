@@ -7,8 +7,9 @@ output.dir <- "/n/airoldifs2/lab/jbischof/word_rate_output/"
 lda.output.dir <- paste0(output.dir,"lda_output/")
 
 ## Vector of topics used for each model
-ntopics.vec <- as.character(c(10,25,50,100))
-iter.use.vec <- rep(1000,4)
+#ntopics.vec <- as.character(c(10,25,50,100))
+ntopics.vec <- as.character(c(10,25))
+iter.use.vec <- rep(1000,length(ntopics.vec))
 names(iter.use.vec) <- ntopics.vec
 
 ## Load vector of marginal word counts
@@ -82,27 +83,36 @@ lda.exc.max <- lapply(lda.exc.list,topic.dist.max)
 dwr.frex.max <- lapply(dwr.frex.list,topic.dist.max)
 lda.frex.max <- lapply(lda.frex.list,topic.dist.max)
 
-# Create plots of LDA v. FREX exclusivity measurements
+## Create plots of LDA v. FREX exclusivity measurements
+## Consider plotting bin averages instead (or lowess)
 par(mfrow=c(1,2))
-plot(log(margwc),logit(lda.exc.max[["10"]]))
-plot(log(margwc),logit(dwr.exc.max[["10"]]))
-# Need FREX plots for LDA as well to see (non)shrinkage pattern
-plot(log(margwc),lda.exc.max[["100"]])
-plot(log(margwc),lda.exc.max[["100"]])
+plot(log(margwc),lda.exc.max[["10"]])
+plot(log(margwc),dwr.exc.max[["10"]])
+## Need FREX plots for LDA as well to see (non)shrinkage pattern
+plot(log(margwc),logit(lda.exc.max[["25"]]))
+plot(log(margwc),lda.exc.max[["25"]])
 
 ## Task 2: Calculate similiarity of word-topic scores
 ## Need to ensure that frex scores sum to one to that is actually a probability measure
-dwr.kl.mat <- lapply(dwr.log.frex.list,FUN=comp.dist.all,fun.compare=kl.dist)#,nwords=20)
-lda.kl.mat <- lapply(lda.rate.list,comp.dist.all,fun.compare=kl.dist)#,nwords=20)
-dwr.hel.mat <- lapply(dwr.log.frex.list,comp.dist.all,fun.compare=hel.dist)#,nwords=20)
-lda.hel.mat <- lapply(lda.rate.list,comp.dist.all,fun.compare=hel.dist)#,nwords=20)
+nwords.use <- 100
+dwr.kl.mat <- lapply(dwr.log.frex.list,FUN=comp.dist.all,fun.compare=kl.dist,
+                     nwords=nwords.use)
+lda.kl.mat <- lapply(lda.rate.list,comp.dist.all,fun.compare=kl.dist,
+                     nwords=nwords.use)
+dwr.hel.mat <- lapply(dwr.log.frex.list,comp.dist.all,fun.compare=hel.dist,
+                      nwords=nwords.use)
+lda.hel.mat <- lapply(lda.rate.list,comp.dist.all,fun.compare=hel.dist,
+                      nwords=nwords.use)
 
-dwr.exc.kl <- lapply(dwr.log.exc.list,FUN=comp.dist.all,fun.compare=kl.dist)#,nwords=20)
-dwr.exc.hel <- lapply(dwr.log.exc.list,FUN=comp.dist.all,fun.compare=hel.dist)#,nwords=20)
+dwr.exc.kl <- lapply(dwr.log.exc.list,FUN=comp.dist.all,fun.compare=kl.dist,
+                     nwords=nwords.use)
+dwr.exc.hel <- lapply(dwr.log.exc.list,FUN=comp.dist.all,fun.compare=hel.dist,
+                      nwords=nwords.use)
 
 sapply(dwr.exc.kl,mean)
-sapply(dwr.exc.hel,mean)
-
-
+sapply(dwr.kl.mat,mean)
 sapply(lda.kl.mat,mean)
+
+sapply(dwr.exc.hel,mean)
+sapply(dwr.hel.mat,mean)
 sapply(lda.hel.mat,mean)

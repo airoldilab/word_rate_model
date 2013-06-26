@@ -23,6 +23,9 @@ wrm.fit <- function(
              metro.correct=TRUE,
              ## Iterations
              iter=100,burnin=0,
+             ## Start sampler from old run?
+             ## Will override any hyperparameter preferences
+             wrm.old=NULL,
              ## Ndraws for theta sampler
              ndraw.theta=5,
              ## Parameter tracing
@@ -42,12 +45,29 @@ wrm.fit <- function(
   d.index <- factor(d.index)
   f.index <- factor(f.index)
   ndraws <- iter + burnin
+
+  ## Is position from old run provided?
+  old.run <- !is.null(wrm.old)
   
-  ## Initalize augmented word count array
-  wc.aug <- multi.init.draw(obs.count=wc.obs,ntopics=ntopics)
-  
-  ## Initialize theta matrix
-  theta.mat <- matrix(1/ntopics,ncol=ntopics,nrow=D)
+  ## Initialize parameters from old run or use uniform start for thetas
+  if(old.run){
+    theta.mat <- wrm.old$ave.param.list$theta.mat
+    lambda.mat <- wrm.old$ave.param.list$lambda.mat
+    alpha <- wrm.old$ave.param.list$alpha
+    beta <- wrm.old$ave.param.list$beta
+    psi <- wrm.old$ave.param.list$psi
+  } else {
+    theta.mat <- matrix(1/ntopics,ncol=ntopics,nrow=D)
+  }
+
+  ## Initalize augmented word count array either from old run or
+  ## from uniform Multinomial
+  if(old.run){
+    wc.aug <- draw.wc.aug(lambda.mat=lambda.mat,theta.mat=theta.mat,Q=Q,
+                          wc.obs=wc.obs,d.index=d.index,f.index=f.index)
+  } else {
+    wc.aug <- multi.init.draw(obs.count=wc.obs,ntopics=ntopics)
+  }
   
   ## Get linear operator for topic-specific counts
   A.d <- t(sparse.model.matrix(~ factor(d.index) + 0))
@@ -100,24 +120,22 @@ wrm.fit <- function(
     if(hparam.draw){
       alpha <- metroh.alpha(alpha.old=alpha,theta.mat=theta.mat,
                             nu=nu.alpha,tau=tau.alpha,
-                            prop.var=0.0025,ndraw=250,
+                            prop.var=0.005,ndraw=250,
                             last.draw=TRUE,metro.correct=apply.mcorrect)
       beta <- metroh.alpha(alpha.old=beta,theta.mat=phi.mat,
-                            nu=nu.beta,tau=tau.beta,
-                            prop.var=0.0025,ndraw=250,
+                           nu=nu.beta,tau=tau.beta,
+                           prop.var=0.005,ndraw=250,
                            last.draw=TRUE,metro.correct=apply.mcorrect)
       ## Get sigma vector for psi draw
       sigma.vec <- apply(lambda.mat,1,sum)
       psi <- draw.psi(sigma.vec=sigma.vec,kappa=ntopics*beta,
                       nu=nu.psi,tau=tau.psi,ndraw=1)
     }
-    
-    ## Compute wfdk rates based on lambda and theta matrices
-    rate.mat <- mapply(function(d,f){theta.mat[d,]*lambda.mat[f,]},
-                       d=d.index,f=f.index)
-    
-    ## Redraw augmented word counts
-    wc.aug <- multi.draw(Q,wc.obs,rate.mat)
+
+    ## Redraw augmented word counts as a funtion to theta and lambda matrices
+    ## as well as observed counts
+    wc.aug <- draw.wc.aug(lambda.mat=lambda.mat,theta.mat=theta.mat,Q=Q,
+                          wc.obs=wc.obs,d.index=d.index,f.index=f.index)
 
     ## Update posterior mean
     if(!is.burnin){
@@ -148,8 +166,9 @@ wrm.fit <- function(
 
       ## Save parameters to output file if requested
       if(all(!is.null(file.out),pos %% 100 == 0)){
-        out.list <- list(ave.param.list=ave.param.list,final.param.list=final.param.list,ntopics=ntopics)
-        save(out.list,file=file.out)
+        wrm.out <- list(ave.param.list=ave.param.list,final.param.list=final.param.list,ntopics=ntopics)
+        if(save.burnin){wrm.out$burnin.param.list <- burnin.param.list}
+        save(wrm.out,file=file.out)
       }
       
     } else {
@@ -193,16 +212,32 @@ wrm.fit <- function(
 }
 
 
-## Function to draw 
+## Function to draw array of multinomials with different prob
+## vector for each row
 multi.draw <- function(Q,wc.obs,rate.mat){
   out <- sapply(1:Q,function(q){rmultinom(n=1,size=wc.obs[q],
                                           prob=rate.mat[,q])})
   return(t(out))
 }
 
+## Function to initialize array of multinomials from uniform
+## distribution
 multi.init.draw <- function(obs.count,ntopics){
   out <- sapply(obs.count,rmultinom,n=1,prob=rep(1,ntopics))
   return(t(out))
+}
+
+## Function to draw augmented word counts
+draw.wc.aug <- function(lambda.mat,theta.mat,Q,wc.obs,
+                        d.index,f.index){
+  ## Compute wfdk rates based on lambda and theta matrices
+  rate.mat <- mapply(function(d,f){theta.mat[d,]*lambda.mat[f,]},
+                     d=d.index,f=f.index)
+  
+  ## Draw augmented word counts
+  wc.aug <- multi.draw(Q=Q,wc.obs=wc.obs,rate.mat=rate.mat)
+
+  return(wc.aug)
 }
 
 

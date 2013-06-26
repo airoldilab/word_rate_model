@@ -19,7 +19,7 @@ if(length(c.args)==0){
   ntopics <- as.numeric(c.args[1])
   iter <- as.numeric(c.args[2])
   burnin <- as.numeric(c.args[3])
-  debug <- as.numeric(c.args[4])
+  debug <- as.logical(as.numeric(c.args[4]))
   data.dir <- c.args[5]
   out.dir <- c.args[6]
 }
@@ -28,6 +28,9 @@ if(length(c.args)==0){
 ## run.tag <- paste0("_k",ntopics,"_i",iter,debug.tag)
 ## out.dir <- paste0(data.dir,"run",run.tag,"/")
 ## dir.create(out.dir, showWarnings = FALSE)
+
+## Is there any burnin requested?
+use.burnin <- burnin > 0
 
 ## Output filename
 file.out <- paste0(out.dir,"wrm_out.RData")
@@ -78,8 +81,8 @@ wrm.out <- wrm.fit(
              ## Save output every 100 iters?
              file.out=file.out,
              verbose=TRUE,
-             metro.correct=FALSE,
-             save.burnin=debug)
+             metro.correct=TRUE,
+             save.burnin=use.burnin)
 save(wrm.out,file=file.out)
 
 ## Analyze model fit
@@ -127,7 +130,7 @@ for(hparam in c("alpha","beta","psi")){
 }
 
 ## Do same for burnin draws
-if(debug){
+if(use.burnin){
   ## Obs level latent variables
   nitems.trace <- 15
   for(i in 1:nitems.trace){

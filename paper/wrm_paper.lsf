@@ -21,7 +21,7 @@ job_index=$(expr ${LSB_JOBINDEX} - 1)
 ntopics=${ntopics_list[$job_index]}
 burnin=${burnin_list[$job_index]}
 iter=1000
-debug=1
+debug=0
 
 # Debug filetag
 if [ $debug -eq 0 ]
@@ -29,7 +29,7 @@ if [ $debug -eq 0 ]
   else 
     debug_tag=_debug
     iter=10
-    burnin=5
+    burnin=10
 fi  
 
 # Set output directory as a function of run parameters
