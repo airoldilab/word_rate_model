@@ -107,6 +107,9 @@ wrm.fit <- function(
     
     ## Get VxK matrix of phis as a function of the lambdas
     phi.mat <- get.phi.mat(lambda.mat)
+
+    ## Get sigma vector as function of the lambdas
+    sigma.vec <- apply(lambda.mat,1,sum)
     
     ## Get DxK matrix of memberships from wdk.mat
     theta.mat <- theta.mat.draw(wdk.mat=wdk.mat,lambda.mat=lambda.mat,
@@ -126,8 +129,6 @@ wrm.fit <- function(
                            nu=nu.beta,tau=tau.beta,
                            prop.var=0.005,ndraw=250,
                            last.draw=TRUE,metro.correct=apply.mcorrect)
-      ## Get sigma vector for psi draw
-      sigma.vec <- apply(lambda.mat,1,sum)
       psi <- draw.psi(sigma.vec=sigma.vec,kappa=ntopics*beta,
                       nu=nu.psi,tau=tau.psi,ndraw=1)
     }
@@ -149,7 +150,7 @@ wrm.fit <- function(
         final.param.list <- update.final.param.list(pos=1,mu.mat=mu.mat,theta.mat=theta.mat,
                                                     phi.mat=phi.mat,final.param.list=final.param.list,
                                                     hparam.draw=hparam.draw,alpha=alpha,beta=beta,psi=psi)
-        ave.param.list <- list(mu.mat=mu.mat,theta.mat=theta.mat,phi.mat=phi.mat)
+        ave.param.list <- list(mu.mat=mu.mat,theta.mat=theta.mat,phi.mat=phi.mat,sigma.vec=sigma.vec)
         if(hparam.draw){
           ave.param.list$alpha <- alpha
           ave.param.list$beta <- beta
@@ -160,7 +161,7 @@ wrm.fit <- function(
                                                     phi.mat=phi.mat,final.param.list=final.param.list,
                                                     hparam.draw=hparam.draw,alpha=alpha,beta=beta,psi=psi)
         ave.param.list <- update.ave.params(pos=pos,ave.param.list=ave.param.list,
-                                            mu.mat=mu.mat,theta.mat=theta.mat,phi.mat=phi.mat,
+                                            mu.mat=mu.mat,theta.mat=theta.mat,phi.mat=phi.mat,sigma.vec=sigma.vec,
                                             hparam.draw=hparam.draw,alpha=alpha,beta=beta,psi=psi)
       }
 
@@ -390,7 +391,8 @@ update.final.param.list <- function(pos,mu.mat,theta.mat,phi.mat,
 
 ## Function to update posterior expectation
 update.ave.params <- function(pos,ave.param.list,mu.mat,theta.mat,
-                              phi.mat,hparam.draw=FALSE,alpha=NULL,
+                              sigma.vec,phi.mat,
+                              hparam.draw=FALSE,alpha=NULL,
                               beta=NULL,psi=NULL){
 
   ## Get relative weights
@@ -404,6 +406,8 @@ update.ave.params <- function(pos,ave.param.list,mu.mat,theta.mat,
     weight.new*phi.mat
   ave.param.list$theta.mat <- weight.current*ave.param.list$theta.mat +
     weight.new*theta.mat
+  ave.param.list$sigma.vec <- weight.current*ave.param.list$sigma.vec +
+    weight.new*sigma.vec
 
   ## Same for hparams if requested
   if(hparam.draw){

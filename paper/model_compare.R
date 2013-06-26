@@ -8,7 +8,7 @@ lda.output.dir <- paste0(output.dir,"lda_output/")
 
 ## Vector of topics used for each model
 #ntopics.vec <- as.character(c(10,25,50,100))
-ntopics.vec <- as.character(c(10,25))
+ntopics.vec <- as.character(c(10,25,50))
 iter.use.vec <- rep(1000,length(ntopics.vec))
 names(iter.use.vec) <- ntopics.vec
 
@@ -24,6 +24,7 @@ names(margwc) <- rownames(margwc.sort)
 dwr.rate.list <- list()
 dwr.exc.list <- list()
 dwr.frex.list <- list()
+overall.rate.list <- list()
 ## dwr.frex.norm.list <- list()
 for(ntopics in ntopics.vec){
   iter.use <- iter.use.vec[ntopics]
@@ -33,6 +34,7 @@ for(ntopics in ntopics.vec){
   load(output.file)
   dwr.rate.list[[ntopics]] <- wrm.out$ave.param.list$mu.mat
   dwr.exc.list[[ntopics]] <- wrm.out$ave.param.list$phi.mat
+  overall.rate.list[[ntopics]] <- apply(exp(wrm.out$ave.param.list$mu.mat),1,sum)
   ## Calculate FREX scores
   dwr.frex.list[[ntopics]] <- get.word.loadings(wrm.out=wrm.out,
                                                 type="frex",
@@ -85,12 +87,19 @@ lda.frex.max <- lapply(lda.frex.list,topic.dist.max)
 
 ## Create plots of LDA v. FREX exclusivity measurements
 ## Consider plotting bin averages instead (or lowess)
+ntopics.plot <- "10"
+lda.metric <- lda.exc.max[[ntopics.plot]]
+dwr.metric <- dwr.exc.max[[ntopics.plot]]
+x.plot <- log(margwc)
+x.plot <- log(overall.rate.list[[ntopics.plot]])
+lda.loess.mat <- curve.loess(x=x.plot,y=lda.metric)
+dwr.loess.mat <- curve.loess(x=x.plot,y=dwr.metric)
 par(mfrow=c(1,2))
-plot(log(margwc),lda.exc.max[["10"]])
-plot(log(margwc),dwr.exc.max[["10"]])
+plot(x.plot,lda.metric,cex=0.5)
+lines(lda.loess.mat,col="red",lwd=2)
+plot(x.plot,dwr.metric,cex=0.5)
+lines(dwr.loess.mat,col="red",lwd=2)
 ## Need FREX plots for LDA as well to see (non)shrinkage pattern
-plot(log(margwc),logit(lda.exc.max[["25"]]))
-plot(log(margwc),lda.exc.max[["25"]])
 
 ## Task 2: Calculate similiarity of word-topic scores
 ## Need to ensure that frex scores sum to one to that is actually a probability measure

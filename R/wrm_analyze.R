@@ -298,3 +298,26 @@ comp.dist.all <- function(log.prob.mat,fun.compare,nwords="all"){
 ##   log.prob[which.zero] <- 0
 ##   entropy <- sum(
 ## }
+
+
+## Loess curve function for plots
+curve.loess <- function(x,y,weights=NULL,prop.sample=NULL,...){
+  if(is.null(weights)){weights <- rep(1,length(x))}
+  ## Use only a sample of the data if requested for fitting
+  if(!is.null(prop.sample)){
+    n <- length(x)
+    n.use <- n*prop.sample
+    index.use <- sample.int(n=n,size=n.use)
+    x.use <- x[index.use]
+    y.use <- y[index.use]
+    weights.use <- weights[index.use]
+  } else {x.use <- x
+          y.use <- y
+          weights.use <- weights}
+  loess.out <- loess(y.use ~ x.use,weights=weights.use,...)
+  x.plot <- unique(x)
+  curve.loess.out <- predict(loess.out,data.frame(x.use=x.plot))
+  order.x <- order(x.plot)
+  mat.loess.out <- cbind(x.plot[order.x],curve.loess.out[order.x])
+  return(mat.loess.out)
+}
