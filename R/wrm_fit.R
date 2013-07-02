@@ -12,7 +12,7 @@ wrm.fit <- function(
              ## Number of topics
              ntopics,
              ## Hyperparameters
-             beta=1,alpha=0.05,psi=1,
+             beta=0.05,alpha=0.05,psi=1,
              ## Priors for hyperparameters
              nu.alpha=NULL,tau.alpha=NULL,
              nu.beta=NULL,tau.beta=NULL,
@@ -52,7 +52,7 @@ wrm.fit <- function(
   ## Initialize parameters from old run or use uniform start for thetas
   if(old.run){
     theta.mat <- wrm.old$ave.param.list$theta.mat
-    lambda.mat <- wrm.old$ave.param.list$lambda.mat
+    lambda.mat <- exp(wrm.old$ave.param.list$mu.mat)
     alpha <- wrm.old$ave.param.list$alpha
     beta <- wrm.old$ave.param.list$beta
     psi <- wrm.old$ave.param.list$psi

@@ -16,12 +16,13 @@
 # BASH CODE THAT YOU WANT TO RUN:
 # Figure out the number of topics for the job index
 declare -a ntopics_list=(10 25 50 100)
-declare -a burnin_list=(1500 1500 2000 3000)
+declare -a burnin_list=(1000 1000 1000 2000)
 job_index=$(expr ${LSB_JOBINDEX} - 1)
 ntopics=${ntopics_list[$job_index]}
 burnin=${burnin_list[$job_index]}
 iter=1000
 debug=0
+old_init=1
 
 # Debug filetag
 if [ $debug -eq 0 ]
@@ -42,4 +43,4 @@ if [ ! -d $output_dir ]
 fi
 
 # Run script in R
-Rscript wrm_paper.R $ntopics $iter $burnin $debug $main_dir $output_dir
+Rscript wrm_paper.R $ntopics $iter $burnin $debug $old_init $main_dir $output_dir

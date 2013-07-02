@@ -11,6 +11,7 @@ if(length(c.args)==0){
   burnin <- 10
   iter <- 10
   debug <- TRUE
+  old.init <- FALSE
   data.dir <- "/n/airoldifs2/lab/jbischof/word_rate_output/"
   debug.tag <- ifelse(debug,"_debug","")
   run.tag <- paste0("_k",ntopics,"_i",iter,debug.tag)
@@ -20,8 +21,9 @@ if(length(c.args)==0){
   iter <- as.numeric(c.args[2])
   burnin <- as.numeric(c.args[3])
   debug <- as.logical(as.numeric(c.args[4]))
-  data.dir <- c.args[5]
-  out.dir <- c.args[6]
+  old.init <- as.logical(as.numeric(c.args[5]))
+  data.dir <- c.args[6]
+  out.dir <- c.args[7]
 }
 
 ## debug.tag <- ifelse(debug,"_debug","")
@@ -60,6 +62,14 @@ if(d.use=="all"){
   doc.length.vec <- doc.length.vec.all[1:d.use]/mean(doc.length.vec.all)
 }
 
+## Initialize fit from old run?
+if(old.init){
+  load(file.out)
+  # Save output to different file in case of crash
+  file.out.old <- paste0(out.dir,"wrm_out_old.RData")
+  save(wrm.out,file=file.out.old)
+}
+
 ##source(paste0(src.dir,"wrm_fit.R"))
 ##debug(wrm.fit)
 wrm.out <- wrm.fit(
@@ -76,6 +86,8 @@ wrm.out <- wrm.fit(
              iter=iter,
              ## Burnin iterations (added to iter)
              burnin=burnin,
+             ## Start sampler from old run?
+             wrm.old=if(old.init){wrm.out}else{NULL},
              ## Number of words and docs to trace
              ndocs.trace=50,nwords.trace=50,
              ## Save output every 100 iters?
