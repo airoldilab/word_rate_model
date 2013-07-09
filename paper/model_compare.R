@@ -152,7 +152,8 @@ rownames(cor.mat) <- c("DTR FREX","DTR RATE","DTR EXC","LDA RATE")
 print(round(cor.mat,4))
 
 
-# Unique words metric
+## Unique words metric
+## Need to get this in terms of proportion of total possible unique words
 nwords.vec <- c(10,25,50,100,250)
 for(nwords in nwords.vec){
   dtr.frex.unique <- sapply(dtr.frex.list,unique.words.mat,
