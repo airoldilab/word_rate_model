@@ -88,6 +88,7 @@ get.word.loadings <- function(wrm.out=NULL,rate.mat=NULL,exc.mat=NULL,
 
 ## Function to get the top items in any vector
 get.top.items <- function(vec,vec.labels,n.get){
+  if(is.null(vec.labels)){vec.labels <- 1:length(vec)}
   vec.order <- rev(order(vec))
   pos.top <- vec.order[1:n.get]
   items.top <- vec.labels[pos.top]
@@ -95,22 +96,34 @@ get.top.items <- function(vec,vec.labels,n.get){
 }
 
 ## Function to find top-loading words in each topic
-get.top.words <- function(wrm.out,n.get,vocab,type="frex",weight.freq=0.5){
+get.top.words <- function(wrm.out=NULL,rate.mat=NULL,exc.mat=NULL,
+                          n.get=20,vocab=NULL,type="frex",weight.freq=0.5){
+
+  ## Retrieve relevant model output
+  if(!is.null(wrm.out)){
+    rate.mat <- wrm.out$ave.param.list$mu.mat
+    exc.mat <- wrm.out$ave.param.list$phi.mat
+  }
 
   ## Get word ids
-  word.ids <- rownames(wrm.out$ave.param.list$mu.mat)
+  if(exists("rate.mat")){
+    word.ids <- rownames(rate.mat)
+  } else {word.ids <- rownames(exc.mat)}
   
   ## Get desired word scores
-  score.mat <- get.word.loadings(wrm.out=wrm.out,type=type,
+  score.mat <- get.word.loadings(wrm.out=wrm.out,rate.mat=rate.mat,
+                                 exc.mat=exc.mat,type=type,
                                  weight.freq=weight.freq)
 
   ## Get word ids for top loading items in each topic
   top.ids.mat <- t(apply(score.mat,2,get.top.items,
                          vec.labels=word.ids,n.get=n.get))
 
-  ## Get word strings for top ids
-  top.words.mat <- t(apply(top.ids.mat,2,function(col){
-    vocab[as.character(col)]}))
+  ## Get word strings for top ids if given
+  if(!is.null(vocab)){
+    top.words.mat <- t(apply(top.ids.mat,2,function(col){
+      vocab[as.character(col)]}))
+  } else {top.words.mat <- top.ids.mat}
 
   return(top.words.mat)
 }
@@ -268,6 +281,31 @@ hel.dist <- function(log.prob.vec1,log.prob.vec2){
   hel.out <- sqrt(sum((sqrt.prob.vec1-sqrt.prob.vec2)^2))/sqrt(2)
   return(hel.out)
 }
+
+## Function to calculate average rank correlations for matrix of summaries
+rank.cor.dist.mat <- function(score.mat,nwords="all",ave=TRUE){
+  if(!nwords=="all"){score.mat <- score.mat[1:nwords,]}
+  # Rank correlation matrix
+  cor.mat <- cor(score.mat,method="spearman")
+  # Vector of unique correlation metrics
+  cor.vec <- cor.mat[lower.tri(cor.mat)]
+  # Average unique correlation if requested
+  if(ave){out <- mean(cor.vec)
+        } else {out <- cor.vec}
+  return(out)
+}
+
+
+## Function to calculate number of unique words in ranking
+unique.words.mat <- function(score.mat,nwords){
+  ## Get word ids for top loading items in each topic
+  top.word.mat <- get.top.words(rate.mat=score.mat,n.get=nwords,
+                                type="freq")
+  # Get number of unique words among top ones
+  nunique <- length(unique(as.vector(top.word.mat)))
+  return(nunique)
+}
+
 
 ## Function to calculate all pairwise distances between vectors in a matrix
 ## using one as the baseline
