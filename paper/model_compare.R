@@ -1,9 +1,11 @@
 ## Script to compare output of DWR and LDA models on quantitative metrics
+library("xtable")
 source("../R/wrm_analyze.R")
 source("../R/wrm_fit.R")
 
 ## Folders were output is stored
 output.dir <- "/n/airoldifs2/lab/jbischof/word_rate_output/"
+plot.output.dir <- paste0(output.dir,"plots/")
 lda.output.dir <- paste0(output.dir,"lda_output/")
 
 ## Vector of topics used for each model
@@ -36,7 +38,7 @@ for(ntopics in ntopics.vec){
   dtr.trate.list[[ntopics]] <- wrm.out$ave.param.list$sigma.vec
   dtr.rate.list[[ntopics]] <- wrm.out$ave.param.list$mu.mat
   dtr.exc.list[[ntopics]] <- wrm.out$ave.param.list$phi.mat
-  overall.rate.list[[ntopics]] <- apply(exp(wrm.out$ave.param.list$mu.mat),1,sum)
+  overall.rate.list[[ntopics]] <- wrm.out$ave.param.list$sigma.vec
   ## Calculate FREX scores
   dtr.frex.list[[ntopics]] <- get.word.loadings(wrm.out=wrm.out,
                                                 type="frex",
@@ -98,19 +100,39 @@ dtr.frex.max <- lapply(dtr.frex.list,topic.dist.max)
 lda.frex.max <- lapply(lda.frex.list,topic.dist.max)
 
 ## Create plots of LDA v. FREX exclusivity measurements
+## Can also try the variance or comparison to Eisenstein
+
 ## Consider plotting bin averages instead (or lowess)
-ntopics.plot <- "10"
-lda.metric <- lda.exc.max[[ntopics.plot]]
-dtr.metric <- dtr.exc.max[[ntopics.plot]]
-x.plot <- log(margwc)
-x.plot <- log(overall.rate.list[[ntopics.plot]])
-lda.loess.mat <- curve.loess(x=x.plot,y=lda.metric)
-dtr.loess.mat <- curve.loess(x=x.plot,y=dtr.metric)
-par(mfrow=c(1,2))
-plot(x.plot,lda.metric,cex=0.5)
-lines(lda.loess.mat,col="red",lwd=2)
-plot(x.plot,dtr.metric,cex=0.5)
-lines(dtr.loess.mat,col="red",lwd=2)
+for(ntopics.plot in ntopics.vec){
+  metrics <- c("exc.max","rate.var")
+  ylabels <- c("Maximum exclusivity","Variance of word rates")
+  filename.metrics <- c("exc_max","rate_var")
+  names(ylabels) <- names(filename.metrics) <- metrics
+  for(metric in metrics){
+    lda.metric <- get(paste0("lda.",metric))[[ntopics.plot]]
+  if(metric=="exc.max"){
+    lda.metric <- logit(lda.metric) 
+    lda.metric[lda.metric==Inf] <- max(lda.metric[!lda.metric==Inf])
+  } 
+    dtr.metric <- get(paste0("dtr.",metric))[[ntopics.plot]]
+    if(metric=="exc.max"){dtr.metric <- logit(dtr.metric)} 
+    x.plot <- log(margwc)
+    ##x.plot <- log(overall.rate.list[[ntopics.plot]])
+    lda.loess.mat <- curve.loess(x=x.plot,y=lda.metric,degree=0,span=0.2)
+    dtr.loess.mat <- curve.loess(x=x.plot,y=dtr.metric,degree=0,span=0.2)
+    file.pdf <- paste0(plot.output.dir,filename.metrics[metric],
+                       "_",ntopics.plot,"_comp.pdf")
+    pdf(file.pdf,width=14,height=7)
+    par(mfrow=c(1,2))
+    plot(x.plot,lda.metric,cex=0.5,xlab="Log marginal word count",
+         ylab=ylabels[metric])
+    lines(lda.loess.mat,col="red",lwd=2)
+    plot(x.plot,dtr.metric,cex=0.5,xlab="Log marginal word count",
+         ylab=ylabels[metric])
+    lines(dtr.loess.mat,col="red",lwd=2)
+    dev.off()
+  }
+}
 ## Need FREX plots for LDA as well to see (non)shrinkage pattern
 
 ## Task 2: Calculate similiarity of word-topic scores
@@ -145,11 +167,13 @@ dtr.rate.cor <- sapply(dtr.rate.list,rank.cor.dist.mat,
                        nwords="all",ave=TRUE)
 dtr.exc.cor <- sapply(dtr.exc.list,rank.cor.dist.mat,
                       nwords="all",ave=TRUE)
+lda.frex.cor <- sapply(lda.frex.list,rank.cor.dist.mat,
+                       nwords="all",ave=TRUE)
 lda.rate.cor <- sapply(lda.rate.list,rank.cor.dist.mat,
                        nwords="all",ave=TRUE)
-cor.mat <- rbind(dtr.frex.cor,dtr.rate.cor,dtr.exc.cor,lda.rate.cor)
-rownames(cor.mat) <- c("DTR FREX","DTR RATE","DTR EXC","LDA RATE")
-print(round(cor.mat,4))
+cor.mat <- rbind(dtr.frex.cor,dtr.rate.cor,dtr.exc.cor,lda.frex.cor,lda.rate.cor)
+rownames(cor.mat) <- c("DTR FREX","DTR RATE","DTR EXC","LDA FREX","LDA RATE")
+print(xtable(cor.mat,digits=3))
 
 
 ## Unique words metric
@@ -162,10 +186,16 @@ for(nwords in nwords.vec){
                             nwords=nwords)
   dtr.exc.unique <- sapply(dtr.exc.list,unique.words.mat,
                             nwords=nwords)
+  lda.frex.unique <- sapply(lda.frex.list,unique.words.mat,
+                            nwords=nwords)
   lda.rate.unique <- sapply(lda.rate.list,unique.words.mat,
                             nwords=nwords)
-  unique.mat <- rbind(dtr.frex.unique,dtr.rate.unique,dtr.exc.unique,lda.rate.unique)
-  rownames(unique.mat) <- c("DTR FREX","DTR RATE","DTR EXC","LDA RATE")
+  unique.mat <- rbind(dtr.frex.unique,dtr.rate.unique,dtr.exc.unique,lda.frex.unique,
+                      lda.rate.unique)
+  unique.prop.mat <- t(t(unique.mat)/(as.numeric(ntopics.vec)*nwords))
+  rownames(unique.mat) <- c("DTR FREX","DTR RATE","DTR EXC","LDA FREX","LDA RATE")
+  dimnames(unique.prop.mat) <- dimnames(unique.mat)
   print(nwords)
-  print(round(unique.mat,4))
+  #print(round(unique.mat,3))
+  print(xtable(unique.prop.mat,digits=3))
 }
