@@ -102,18 +102,19 @@ lda.frex.max <- lapply(lda.frex.list,topic.dist.max)
 ## Create plots of LDA v. FREX exclusivity measurements
 ## Can also try the variance or comparison to Eisenstein
 
-## Consider plotting bin averages instead (or lowess)
+## Consider plotting bin averages instead (or loess)
+metrics <- c("exc.max","rate.var","exc.ent")
+ylabels <- c("Maximum exclusivity","Variance of word rates",
+             "Entropy of word-topic probabilities")
+filename.metrics <- c("exc_max","rate_var","exc_ent")
+names(ylabels) <- names(filename.metrics) <- metrics
 for(ntopics.plot in ntopics.vec){
-  metrics <- c("exc.max","rate.var")
-  ylabels <- c("Maximum exclusivity","Variance of word rates")
-  filename.metrics <- c("exc_max","rate_var")
-  names(ylabels) <- names(filename.metrics) <- metrics
   for(metric in metrics){
     lda.metric <- get(paste0("lda.",metric))[[ntopics.plot]]
-  if(metric=="exc.max"){
-    lda.metric <- logit(lda.metric) 
-    lda.metric[lda.metric==Inf] <- max(lda.metric[!lda.metric==Inf])
-  } 
+    if(metric=="exc.max"){
+      lda.metric <- logit(lda.metric) 
+      lda.metric[lda.metric==Inf] <- max(lda.metric[!lda.metric==Inf])
+    } 
     dtr.metric <- get(paste0("dtr.",metric))[[ntopics.plot]]
     if(metric=="exc.max"){dtr.metric <- logit(dtr.metric)} 
     x.plot <- log(margwc)

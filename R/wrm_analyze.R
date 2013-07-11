@@ -257,7 +257,7 @@ entropy.dist <- function(prob.vec,logp=TRUE){
     log.prob.vec[log.prob.vec == -Inf] <- 0
     abs.prob.vec <- prob.vec
   }
-  entropy <- sum(abs.prob.vec*log.prob.vec)
+  entropy <- -sum(abs.prob.vec*log.prob.vec)
   return(entropy)
 }
 
