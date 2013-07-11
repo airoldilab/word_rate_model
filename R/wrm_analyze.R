@@ -241,7 +241,11 @@ topic.dist.entropy <- function(score.mat,logp=TRUE){
 
 ## Function to ensure log probability dist is normalized
 norm.log.prob <- function(log.prob.vec){
-  out <- log.prob.vec - log(sum(exp(log.prob.vec)))
+  # Perform centering operation first to increase stability
+  mean.log.prob <- mean(log.prob.vec)
+  c.log.prob.vec <- log.prob.vec - mean.log.prob
+  prob.vec <- exp(log.prob.vec)
+  out <- c.log.prob.vec - log(sum(prob.vec)) + mean.log.prob
   return(out)
 }
                              

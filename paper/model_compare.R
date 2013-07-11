@@ -63,7 +63,8 @@ for(ntopics in ntopics.vec){
   ## Calculate implied exclusivity and frex scores for lda fit
   ## Won't necessarily be possible to compute logit since
   ## zeros and ones are possible
-  lda.exc.mat <- get.phi.mat(exp(lda.rate.mat))
+  lda.exc.mat <- exp(t(apply(lda.rate.mat,1,norm.log.prob)))
+  #lda.exc.mat <- get.phi.mat(exp(lda.rate.mat))
   lda.frex.mat <- get.word.loadings(rate.mat=lda.rate.mat,
                                     exc.mat=lda.exc.mat,
                                     type="frex",weight.freq=0.5)
@@ -104,8 +105,8 @@ lda.frex.max <- lapply(lda.frex.list,topic.dist.max)
 
 ## Consider plotting bin averages instead (or loess)
 metrics <- c("exc.max","rate.var","exc.ent")
-ylabels <- c("Maximum exclusivity","Variance of word rates",
-             "Entropy of word-topic probabilities")
+ylabels <- c("Maximum logit exclusivity","Variance of log word rates",
+             "Entropy of exclusivity distribution")
 filename.metrics <- c("exc_max","rate_var","exc_ent")
 names(ylabels) <- names(filename.metrics) <- metrics
 for(ntopics.plot in ntopics.vec){
@@ -121,10 +122,10 @@ for(ntopics.plot in ntopics.vec){
     ##x.plot <- log(overall.rate.list[[ntopics.plot]])
     lda.loess.mat <- curve.loess(x=x.plot,y=lda.metric,degree=0,span=0.2)
     dtr.loess.mat <- curve.loess(x=x.plot,y=dtr.metric,degree=0,span=0.2)
-    file.pdf <- paste0(plot.output.dir,filename.metrics[metric],
-                       "_",ntopics.plot,"_comp.pdf")
-    pdf(file.pdf,width=14,height=7)
-    par(mfrow=c(1,2))
+    file.png <- paste0(plot.output.dir,filename.metrics[metric],
+                       "_",ntopics.plot,"_comp.png")
+    png(file.png,width=14,height=6,units="in",res=150)
+    par(mfrow=c(1,2),mar=c(4,4,2,2))
     plot(x.plot,lda.metric,cex=0.5,xlab="Log marginal word count",
          ylab=ylabels[metric])
     lines(lda.loess.mat,col="red",lwd=2)
