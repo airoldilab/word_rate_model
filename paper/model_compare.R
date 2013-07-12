@@ -6,6 +6,7 @@ source("../R/wrm_fit.R")
 ## Folders were output is stored
 output.dir <- "/n/airoldifs2/lab/jbischof/word_rate_output/"
 plot.output.dir <- paste0(output.dir,"plots/")
+sum.output.dir <- paste0(output.dir,"topic_sum/")
 lda.output.dir <- paste0(output.dir,"lda_output/")
 
 ## Vector of topics used for each model
@@ -20,6 +21,12 @@ margwc.nosort <- read.table(file.margwc,row.names=1)
 margwc.sort <- margwc.nosort[order(as.numeric(rownames(margwc.nosort))),,drop=FALSE]
 margwc <- margwc.sort[,1]
 names(margwc) <- rownames(margwc.sort)
+
+## Load in vocab vector
+vocab.file <- paste0(output.dir,"vocab.txt")
+vocab <- read.table(file=vocab.file,colClasses="character")[,1]
+names(vocab) <- 1:length(vocab) - 1
+
 
 ## Load matrices of word-topic rates
 ## DTR model
@@ -83,10 +90,38 @@ plot(log(margwc),log(dtr.trate.list[["50"]]))
 plot(log(margwc),log(dtr.trate.list[["100"]]))
 plot(log(dtr.trate.list[["10"]]),log(dtr.trate.list[["100"]]))
 
-## Task 1: compare variance and entropy of exc vectors as a function of
+
+## Task 1: Find top-loading words in each topic across models and summary types
+models <- c("dtr","lda")
+nwords.sum <- 10
+for (model in models){
+
+  ## Get exc and freq lists for model
+  exc.list <- get(paste0(model,".exc.list"))
+  rate.list <- get(paste0(model,".rate.list"))
+
+  for(ntopics in ntopics.vec){
+    exc.mat <- exc.list[[ntopics]]
+    rate.mat <- rate.list[[ntopics]]
+    rownames(exc.mat) <- rownames(rate.mat) <- names(vocab)
+    frex.sum <- get.top.words(rate.mat=rate.mat,exc.mat=exc.mat,
+                              n.get=nwords.sum,vocab=vocab,type="frex",weight.freq=0.5)
+    freq.sum <- get.top.words(rate.mat=rate.mat,n.get=nwords.sum,
+                              vocab=vocab,type="freq",weight.freq=0.5)
+    
+    frex.file.out <- paste0(sum.output.dir,model,"_",ntopics,"_frex_ap_sum.txt")
+    freq.file.out <- paste0(sum.output.dir,model,"_",ntopics,"_freq_ap_sum.txt")
+    write.table(t(frex.sum),file=frex.file.out,sep=" ",quote=FALSE,
+                row.names=1:ntopics,col.names=FALSE)
+    write.table(t(freq.sum),file=freq.file.out,sep=" ",quote=FALSE,
+                row.names=1:ntopics,col.names=FALSE)
+  }
+}
+
+
+## Task 2: compare variance and entropy of exc vectors as a function of
 ## marginal word frequency
 ## Since only rate stable for LDA in log space, var only works for rates
-## Need to plot these as function of log(margwc) with loess smoother
 dtr.rate.var <- lapply(dtr.rate.list,topic.dist.var)
 lda.rate.var <- lapply(lda.rate.list,topic.dist.var)
 dtr.rate.ent <- lapply(dtr.rate.list,topic.dist.entropy,logp=TRUE)
@@ -139,40 +174,41 @@ for(ntopics.plot in ntopics.vec){
 
 ## Task 2: Calculate similiarity of word-topic scores
 ## Need to ensure that frex scores sum to one to that is actually a probability measure
-nwords.use <- "all"
-dtr.kl.mat <- lapply(dtr.log.frex.list,FUN=comp.dist.all,fun.compare=kl.dist,
-                     nwords=nwords.use)
-lda.kl.mat <- lapply(lda.rate.list,comp.dist.all,fun.compare=kl.dist,
-                     nwords=nwords.use)
-dtr.hel.mat <- lapply(dtr.log.frex.list,comp.dist.all,fun.compare=hel.dist,
-                      nwords=nwords.use)
-lda.hel.mat <- lapply(lda.rate.list,comp.dist.all,fun.compare=hel.dist,
-                      nwords=nwords.use)
+## nwords.sim <- "all"
+## dtr.kl.mat <- lapply(dtr.log.frex.list,FUN=comp.dist.all,fun.compare=kl.dist,
+##                      nwords=nwords.use)
+## lda.kl.mat <- lapply(lda.rate.list,comp.dist.all,fun.compare=kl.dist,
+##                      nwords=nwords.use)
+## dtr.hel.mat <- lapply(dtr.log.frex.list,comp.dist.all,fun.compare=hel.dist,
+##                       nwords=nwords.use)
+## lda.hel.mat <- lapply(lda.rate.list,comp.dist.all,fun.compare=hel.dist,
+##                       nwords=nwords.use)
 
-dtr.exc.kl <- lapply(dtr.log.exc.list,FUN=comp.dist.all,fun.compare=kl.dist,
-                     nwords=nwords.use)
-dtr.exc.hel <- lapply(dtr.log.exc.list,FUN=comp.dist.all,fun.compare=hel.dist,
-                      nwords=nwords.use)
+## dtr.exc.kl <- lapply(dtr.log.exc.list,FUN=comp.dist.all,fun.compare=kl.dist,
+##                      nwords=nwords.use)
+## dtr.exc.hel <- lapply(dtr.log.exc.list,FUN=comp.dist.all,fun.compare=hel.dist,
+##                       nwords=nwords.use)
 
-sapply(dtr.exc.kl,mean)
-sapply(dtr.kl.mat,mean)
-sapply(lda.kl.mat,mean)
+## sapply(dtr.exc.kl,mean)
+## sapply(dtr.kl.mat,mean)
+## sapply(lda.kl.mat,mean)
 
-sapply(dtr.exc.hel,mean)
-sapply(dtr.hel.mat,mean)
-sapply(lda.hel.mat,mean)
+## sapply(dtr.exc.hel,mean)
+## sapply(dtr.hel.mat,mean)
+## sapply(lda.hel.mat,mean)
 
 ## Rank correlation metric
+nwords.sim <- "all"
 dtr.frex.cor <- sapply(dtr.frex.list,rank.cor.dist.mat,
-                       nwords="all",ave=TRUE)
+                       nwords=nwords.sim,ave=TRUE)
 dtr.rate.cor <- sapply(dtr.rate.list,rank.cor.dist.mat,
-                       nwords="all",ave=TRUE)
+                       nwords=nwords.sim,ave=TRUE)
 dtr.exc.cor <- sapply(dtr.exc.list,rank.cor.dist.mat,
-                      nwords="all",ave=TRUE)
+                      nwords=nwords.sim,ave=TRUE)
 lda.frex.cor <- sapply(lda.frex.list,rank.cor.dist.mat,
-                       nwords="all",ave=TRUE)
+                       nwords=nwords.sim,ave=TRUE)
 lda.rate.cor <- sapply(lda.rate.list,rank.cor.dist.mat,
-                       nwords="all",ave=TRUE)
+                       nwords=nwords.sim,ave=TRUE)
 cor.mat <- rbind(dtr.frex.cor,dtr.rate.cor,dtr.exc.cor,lda.frex.cor,lda.rate.cor)
 rownames(cor.mat) <- c("DTR FREX","DTR RATE","DTR EXC","LDA FREX","LDA RATE")
 print(xtable(cor.mat,digits=3))

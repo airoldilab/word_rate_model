@@ -96,6 +96,7 @@ get.top.items <- function(vec,vec.labels,n.get){
 }
 
 ## Function to find top-loading words in each topic
+## Rownames need to be vocab ids
 get.top.words <- function(wrm.out=NULL,rate.mat=NULL,exc.mat=NULL,
                           n.get=20,vocab=NULL,type="frex",weight.freq=0.5){
 
