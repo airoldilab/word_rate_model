@@ -34,7 +34,10 @@ dtr.rate.list <- list()
 dtr.trate.list <- list()
 dtr.exc.list <- list()
 dtr.frex.list <- list()
-overall.rate.list <- list()
+dtr.overall.rate.list <- list()
+dtr.alpha <- c()
+dtr.beta <- c()
+dtr.psi <- c()
 ## dtr.frex.norm.list <- list()
 for(ntopics in ntopics.vec){
   iter.use <- iter.use.vec[ntopics]
@@ -45,13 +48,17 @@ for(ntopics in ntopics.vec){
   dtr.trate.list[[ntopics]] <- wrm.out$ave.param.list$sigma.vec
   dtr.rate.list[[ntopics]] <- wrm.out$ave.param.list$mu.mat
   dtr.exc.list[[ntopics]] <- wrm.out$ave.param.list$phi.mat
-  overall.rate.list[[ntopics]] <- wrm.out$ave.param.list$sigma.vec
+  dtr.overall.rate.list[[ntopics]] <- wrm.out$ave.param.list$sigma.vec
   ## Calculate FREX scores
   dtr.frex.list[[ntopics]] <- get.word.loadings(wrm.out=wrm.out,
                                                 type="frex",
                                                 weight.freq=0.5)
   ## dtr.frex.norm.list[[ntopics]] <- apply(dtr.frex.list[[ntopics]],1,
   ##                                        function(col){col/sum(col)})
+  # Examine hyperparameters
+  dtr.alpha[ntopics] <- wrm.out$ave.param.list$alpha
+  dtr.beta[ntopics] <- wrm.out$ave.param.list$beta
+  dtr.psi[ntopics] <- wrm.out$ave.param.list$psi
 }
 dtr.log.frex.list <- lapply(dtr.frex.list,log)
 dtr.log.exc.list <- lapply(dtr.exc.list,log)
@@ -89,6 +96,26 @@ plot(log(margwc),log(dtr.trate.list[["25"]]))
 plot(log(margwc),log(dtr.trate.list[["50"]]))
 plot(log(margwc),log(dtr.trate.list[["100"]]))
 plot(log(dtr.trate.list[["10"]]),log(dtr.trate.list[["100"]]))
+
+# Look at evolution of Dirichlet concentration parameter as change # of topics
+hparam.table <- rbind(dtr.alpha,dtr.beta)
+xtable(hparam.table,digits=3)
+
+# Show regularization pattern by plotting exc against overall rate
+ntopics.use <- c("10","100")
+file.png <- paste0(plot.output.dir,"reg_demo.png")
+png(file.png,width=14,height=7,units="in",res=150)
+par(mfrow=c(1,2))
+for(ntopics in ntopics.use){
+  plot(log(dtr.overall.rate.list[[ntopics]]) - log(as.numeric(ntopics)),
+       logit(dtr.exc.list[[ntopics]][,1]),cex=0.5,
+       xlab=expression(paste("Overall rate: log(",sigma[f],")")),
+       ylab=expression(paste("Exclusivity for topic 1: logit(",phi[f1],")")),
+       main=paste(ntopics,"topics"))
+  abline(h=logit(1/as.numeric(ntopics)),col="red",lwd=2)
+  legend(x="topleft",legend="1/K baseline",col="red",lwd=2)
+}
+dev.off()
 
 
 ## Task 1: Find top-loading words in each topic across models and summary types
@@ -154,7 +181,7 @@ for(ntopics.plot in ntopics.vec){
     dtr.metric <- get(paste0("dtr.",metric))[[ntopics.plot]]
     if(metric=="exc.max"){dtr.metric <- logit(dtr.metric)} 
     x.plot <- log(margwc)
-    ##x.plot <- log(overall.rate.list[[ntopics.plot]])
+    ##x.plot <- log(dtr.overall.rate.list[[ntopics.plot]])
     lda.loess.mat <- curve.loess(x=x.plot,y=lda.metric,degree=0,span=0.2)
     dtr.loess.mat <- curve.loess(x=x.plot,y=dtr.metric,degree=0,span=0.2)
     file.png <- paste0(plot.output.dir,filename.metrics[metric],
