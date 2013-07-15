@@ -67,7 +67,7 @@ draw.psi <- function(sigma.vec,kappa,nu,tau,ndraw=1){
   if(is.null(nu)){nu <- 0}
   if(is.null(tau)){tau <- 0}
   shape.psi <- V*kappa + nu
-  rate.psi <- tau + sum(sigma.vec)
+  rate.psi <- sum(sigma.vec) + tau
   psi.new <- rgamma(n=ndraw,shape=shape.psi,rate=rate.psi)
   return(psi.new)
 }
