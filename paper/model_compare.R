@@ -165,6 +165,12 @@ lda.frex.max <- lapply(lda.frex.list,topic.dist.max)
 ## Create plots of LDA v. FREX exclusivity measurements
 ## Can also try the variance or comparison to Eisenstein
 
+# Create tickmarks for log marginal word count
+x.plot <- log(margwc,base=10)
+range.x <- range(log(margwc,base=10),na.rm=TRUE)
+myTicks <- seq(0.5,floor(range.x[2]),by=0.5)
+emyTicks <- 10^(myTicks)
+
 ## Consider plotting bin averages instead (or loess)
 metrics <- c("exc.max","rate.var","exc.ent")
 ylabels <- c("Maximum logit exclusivity","Variance of log word rates",
@@ -180,7 +186,6 @@ for(ntopics.plot in ntopics.vec){
     } 
     dtr.metric <- get(paste0("dtr.",metric))[[ntopics.plot]]
     if(metric=="exc.max"){dtr.metric <- logit(dtr.metric)} 
-    x.plot <- log(margwc)
     ##x.plot <- log(dtr.overall.rate.list[[ntopics.plot]])
     lda.loess.mat <- curve.loess(x=x.plot,y=lda.metric,degree=0,span=0.2)
     dtr.loess.mat <- curve.loess(x=x.plot,y=dtr.metric,degree=0,span=0.2)
@@ -188,11 +193,17 @@ for(ntopics.plot in ntopics.vec){
                        "_",ntopics.plot,"_comp.png")
     png(file.png,width=14,height=6,units="in",res=150)
     par(mfrow=c(1,2),mar=c(4,4,2,2))
-    plot(x.plot,lda.metric,cex=0.5,xlab="Log marginal word count",
-         ylab=ylabels[metric])
+    plot(x.plot,lda.metric,cex=0.5,xlab="Marginal word count",
+         ylab=ylabels[metric],xaxt="n")
+    axis(side=1,at=myTicks,
+         labels=ifelse(myTicks >= 1, sprintf("%.0f", emyTicks),
+           sprintf("%0.2f", emyTicks)))
     lines(lda.loess.mat,col="red",lwd=2)
-    plot(x.plot,dtr.metric,cex=0.5,xlab="Log marginal word count",
-         ylab=ylabels[metric])
+    plot(x.plot,dtr.metric,cex=0.5,xlab="Marginal word count",
+         ylab=ylabels[metric],xaxt="n")
+    axis(side=1,at=myTicks,
+         labels=ifelse(myTicks >= 1, sprintf("%.0f", emyTicks),
+           sprintf("%0.2f", emyTicks)))
     lines(dtr.loess.mat,col="red",lwd=2)
     dev.off()
   }
