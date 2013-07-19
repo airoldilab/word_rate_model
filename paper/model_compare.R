@@ -2,6 +2,7 @@
 library("xtable")
 source("../R/wrm_analyze.R")
 source("../R/wrm_fit.R")
+source("../R/greedy_topic_match.R")
 
 ## Folders were output is stored
 output.dir <- "/n/airoldifs2/lab/jbischof/word_rate_output/"
@@ -26,6 +27,12 @@ names(margwc) <- rownames(margwc.sort)
 vocab.file <- paste0(output.dir,"vocab.txt")
 vocab <- read.table(file=vocab.file,colClasses="character")[,1]
 names(vocab) <- 1:length(vocab) - 1
+## Load in stop word list and figure out which of vocab is stop words
+stop.file <- paste0(output.dir,"english.stop")
+stop.words.raw <- read.table(file=stop.file,colClasses="character")[,1]
+stop.words <- sapply(stop.words.raw,gsub,pattern="'",replacement="")
+pos.vocab.stop <- which(vocab %in% stop.words)
+vocab.stopped <- vocab[-pos.vocab.stop]
 
 
 ## Load matrices of word-topic rates
@@ -121,6 +128,13 @@ dev.off()
 ## Task 1: Find top-loading words in each topic across models and summary types
 models <- c("dtr","lda")
 nwords.sum <- 10
+topic.match.list <- list()
+for(ntopics in ntopics.vec){
+  topic.match.list[[ntopics]] <- greedy.topic.match(topic.new=lda.rate.list[[ntopics]],
+                                                    topic.ref=dtr.rate.list[[ntopics]])
+  colnames(topic.match.list[[ntopics]]) <- c("lda","dtr")
+}
+
 for (model in models){
 
   ## Get exc and freq lists for model
@@ -128,13 +142,15 @@ for (model in models){
   rate.list <- get(paste0(model,".rate.list"))
 
   for(ntopics in ntopics.vec){
-    exc.mat <- exc.list[[ntopics]]
-    rate.mat <- rate.list[[ntopics]]
-    rownames(exc.mat) <- rownames(rate.mat) <- names(vocab)
+    exc.mat <- exc.list[[ntopics]][-pos.vocab.stop,
+                                   as.numeric(topic.match.list[[ntopics]][,model])]
+    rate.mat <- rate.list[[ntopics]][-pos.vocab.stop,
+                                     as.numeric(topic.match.list[[ntopics]][,model])]
+    rownames(exc.mat) <- rownames(rate.mat) <- names(vocab.stopped)
     frex.sum <- get.top.words(rate.mat=rate.mat,exc.mat=exc.mat,
-                              n.get=nwords.sum,vocab=vocab,type="frex",weight.freq=0.5)
+                              n.get=nwords.sum,vocab=vocab.stopped,type="frex",weight.freq=0.5)
     freq.sum <- get.top.words(rate.mat=rate.mat,n.get=nwords.sum,
-                              vocab=vocab,type="freq",weight.freq=0.5)
+                              vocab=vocab.stopped,type="freq",weight.freq=0.5)
     
     frex.file.out <- paste0(sum.output.dir,model,"_",ntopics,"_frex_ap_sum.txt")
     freq.file.out <- paste0(sum.output.dir,model,"_",ntopics,"_freq_ap_sum.txt")
