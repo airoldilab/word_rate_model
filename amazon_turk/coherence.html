@@ -1,0 +1,57 @@
+<p>&nbsp;</p>
+<table width="80%">
+    <tbody>
+        <tr>
+            <td>
+            <h2>Instructions and guidelines:</h2>
+            <p>You will be presented with a list of topics, and the task is to rate if each topic is <b>coherent</b>, if it describes a concept/subject or simply 'makes sense'. Note that a topic is a list of words.</p>
+            <p>The following scale should be used for scoring:</p>
+            <ul>
+                <li><span style="color: rgb(255, 0, 0);">3</span>&nbsp;= Very coherent; the list of words collectively describes a clear concept; it 'makes sense'</li>
+                <li><span style="color: rgb(255, 0, 0);">2</span>&nbsp;= Mildly coherent; the words seem to describe a concept/subject, but it is not very clear (or not as clear as '3')</li>
+                <li><span style="color: rgb(255, 0, 0);">1&nbsp;</span>= Incoherent; the list of words does not 'make sense'</li>
+            </ul>
+            <p>'2' is between '1' and '3' in terms of coherence. Often, with '3', it is easy to think of a concept to summarise the topic. With '1', it is difficult.</p>
+            <p>Examples of '3' (very coherent):</p>
+            <ul>
+                <li>court law lawyer judge case&nbsp;<i>(topic is about 'law')</i></li>
+                <li>rate market percent price economy&nbsp;<i>(topic is about 'economy')</i></li>
+                <li>music song band rock album <i>(topic is about 'music')</i></li>
+            </ul>
+            <p>Examples of '1' (incoherent):</p>
+            <ul>
+                <li>williams letter wrote murphy koch</li>
+                <li>globe photos frank mass bear</li>
+                <li>north south carolina korea korean</li>
+            </ul>
+            <p>For these questions we are interested in the absolute quality of the topics, so please rate each individually according to the above rubic without reference to the others. It is possible for all topics to be of high or low quality.</p>
+            <p>For the final question, in contrast, you will be asked whether any of the topics are noticeably more coherent than the others. Here we are interested in the relative quality of the topics, so please identify an obvious frontrunner even if the overall quality is low. If there is a tie, please state "No preference"</p>
+            <p>&nbsp;&nbsp;</p>
+            <p><b>Note:</b> You must answer all questions for the work to be approved. Also, some of the presented topics can be technical or domain-specific. If you are unsure about the meaning of a word, you may do a quick web search.</p>
+            </td>
+        </tr>
+        <tr>
+            <td bgcolor="#2390ff">&nbsp;</td>
+        </tr>
+        <tr>
+            <td>
+            <ol>
+                <li>
+                <h3>${topic00}</h3>
+                <input type="hidden" name="topicid" value="${topic00id}" />                 <input type="radio" name="topic00" value="1" /><span style="color: rgb(255, 0, 0);">1</span> = incoherent           <input type="radio" name="topic00" value="2" /><span style="color: rgb(255, 0, 0);">2</span> = mildly coherent <input type="radio" name="topic00" value="3" /><span style="color: rgb(255, 0, 0);">3</span> = very coherent</li>
+                <li>
+                <h3>${topic01}</h3>
+                <input type="hidden" name="topicid" value="${topic01id}" />                 <input type="radio" name="topic01" value="1" /><span style="color: rgb(255, 0, 0);">1</span> = incoherent           <input type="radio" name="topic01" value="2" /><span style="color: rgb(255, 0, 0);">2</span> = mildly coherent <input type="radio" name="topic01" value="3" /><span style="color: rgb(255, 0, 0);">3</span> = very coherent</li>
+                <li>
+                <h3>${topic02}</h3>
+                <input type="hidden" name="topicid" value="${topic02id}" />                 <input type="radio" name="topic02" value="1" /><span style="color: rgb(255, 0, 0);">1</span> = incoherent           <input type="radio" name="topic02" value="2" /><span style="color: rgb(255, 0, 0);">2</span> = mildly coherent <input type="radio" name="topic02" value="3" /><span style="color: rgb(255, 0, 0);">3</span> = very coherent</li>
+                <li>
+                <h3>Of the three topics above, is any noticeably <i>more</i> coherent than the others? If not, state 'no preference'.</h3>
+                <input type="radio" name="relpref" value="00" />#1           <input type="radio" name="relpref" value="01" />#2 <input type="radio" name="relpref" value="02" />#3 <input type="radio" name="relpref" value="999" /> No preference
+                </li>
+            </ol>
+            </td>
+        </tr>
+    </tbody>
+</table>
+<p>&nbsp;</p>

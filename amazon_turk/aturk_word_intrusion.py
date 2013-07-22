@@ -1,0 +1,1 @@
+# Script to create csv input files for Amazon Turk word intrusion task
