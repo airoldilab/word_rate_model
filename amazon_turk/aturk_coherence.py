@@ -8,14 +8,11 @@
 # Import needed libraries
 import string
 import random
+from get_topic_sum import *
 
 # List of filenames where name before suffix is descriptive of model (e.g., model_name.txt)
 def gen_coherence_csv(topic_sum_filenames_dict,outfilename,nwords_sum=5, \
 n_replicates=1,n_tasks=10):
-	# Figure out position where to stop summary list
-	stop_pos = nwords_sum + 1
-	model_sum_dict = {}
-	ntopics_dict = {}
 	nmodels = len(topic_sum_filenames_dict)
 	outfile = open(outfilename,'w')
 	
@@ -29,18 +26,7 @@ n_replicates=1,n_tasks=10):
 	outfile.write(header)
 	
 	# Read in list of topic summaries and add it to dictionary
-	for model_name in topic_sum_filenames_dict:
-		filename = topic_sum_filenames_dict[model_name]
-		topic_sum_file = open(filename,'r')
-		topic_sum_list = []
-		for line in topic_sum_file:
-			line_list = string.split(line.strip()," ")[1:stop_pos]
-			topic_sum = string.join(line_list,"   ")
-			topic_sum_list.append(topic_sum)
-			model_sum_dict[model_name] = topic_sum_list
-			ntopics_dict[model_name] = len(topic_sum_list)
-		topic_sum_file.close()
-    
+	model_sum_dict, ntopics_dict = get_topic_sum(topic_sum_filenames_dict,nwords_sum)
 	#print ntopics_dict
 	#print model_sum_dict
   
