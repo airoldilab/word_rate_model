@@ -1,7 +1,10 @@
+# Script to read in original XML version of AP docs and turn into lines of outfile
+
 import xml.etree.ElementTree as ET
 import string
 
-data_dir = "../data/"
+output_dir =  "/n/airoldifs2/lab/jbischof/word_rate_output/"
+data_dir = out_dir + "/data/"
 ap_file = data_dir + "ap.xml"
 outfilename = data_dir + "ap_docs.txt"
 
