@@ -18,5 +18,5 @@ for j in range(len(models)):
 	topic_sum_filenames_dict[models[j]] = topic_sum_filenames_list[j]
 
 # Run script
-gen_wi_csv(topic_sum_filenames_dict,outfilename,nwords_sum=5,nwords_sum_full=10 \
+gen_wi_csv(topic_sum_filenames_dict,outfilename,nwords_sum=5,nwords_sum_full=10, \
 n_replicates=nreplicates,n_tasks=njobs)

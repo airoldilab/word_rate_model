@@ -1,8 +1,9 @@
 # Script to create csv input files for Amazon Turk word intrusion task
 import random
 import string
+from get_topic_sum import *
 
-def gen_wi_csv(topic_sum_filenames_dict,outfilename,nwords_sum=5,nwords_sum_full=10 \
+def gen_wi_csv(topic_sum_filenames_dict,outfilename,nwords_sum=5,nwords_sum_full=10, \
 n_replicates=1,n_tasks=10):
 
 	nmodels = len(topic_sum_filenames_dict)
@@ -12,18 +13,20 @@ n_replicates=1,n_tasks=10):
 	header = ""
 	ntopics_tot = nmodels*n_replicates
 	for j in range(ntopics_tot):
-		h_id = "q%did," % j
-		h_words_list = ["q%dw%d" % (j,k) for k in range(nwords_sum + 1)[1:]]
+		h_id = "q%did," % (j + 1)
+		h_words_list = ["q%dw%d" % (j+1,k) for k in range(nwords_sum + 2)[1:]]
 		h_words = string.join(h_words_list,",")
 		h_add = h_id + h_words
 		if j < (ntopics_tot - 1): header += h_add + ","
 		else: header += h_add + "\n"
-		outfile.write(header)
+	outfile.write(header)
 	
 	# Read in list of topic summaries and add it to dictionary
 	model_sum_dict, ntopics_dict = get_topic_sum(topic_sum_filenames_dict,nwords_sum)
 	full_model_sum_dict, junk = get_topic_sum(topic_sum_filenames_dict,nwords_sum_full)
-
+	#print model_sum_dict
+	#print full_model_sum_dict
+	
 	# Generate tasks
 	model_name_list = topic_sum_filenames_dict.keys()
 	for j in range(n_tasks):
@@ -35,17 +38,22 @@ n_replicates=1,n_tasks=10):
 				# Select random topic from each model
 				topic_choose = random.randrange(ntopics_dict[model_name])
 				# Select an intruder topic that is not the same
-				while topic_intrude is not topic_choose:
+				topic_intrude = random.randrange(ntopics_dict[model_name])
+				while topic_intrude is topic_choose:
 					topic_intrude = random.randrange(ntopics_dict[model_name])
-				model_topic_list = string.split(model_sum_dict[model_name][topic_choose]," ")
-				model_intrude_list = string.split(full_model_sum_dict[model_name][topic_intrude]," ")
+				model_topic_list = string.split(model_sum_dict[model_name][topic_choose],"   ")
+				model_intrude_list = string.split(full_model_sum_dict[model_name][topic_intrude],"   ")
 				# Choose intruder word and add it to topic summary
 				intrude_word =  model_intrude_list[random.randrange(nwords_sum_full)]
 				model_topic_list.append(intrude_word)
 				# Shuffle order of summary
-				shuffle(model_topic_list)
-				task_output += [model_name,model_topic_list]
+				random.shuffle(model_topic_list)
+				#print "model_intrude_list", model_intrude_list
+				#print model_topic_list
+				#print model_name
+				task_output += [model_name] + model_topic_list
+		#print task_output
 		outstring = string.join(task_output,",") + "\n"
 		outfile.write(outstring)
-				
+		
 	outfile.close()
