@@ -14,7 +14,9 @@
 declare -a ntopics_list=(10 25 50 100)
 job_index=$(expr ${LSB_JOBINDEX} - 1)
 ntopics=${ntopics_list[$job_index]}
-output_dir=/n/airoldifs2/lab/jbischof/word_rate_output/lda_output/run_k${ntopics}/
+main_dir=/n/airoldifs2/lab/jbischof/word_rate_output/
+data_dir=${main_dir}data/
+output_dir=${main_dir}lda_output/run_k${ntopics}/
 
 # Make the output directory if it already doesn't exist
 if [ ! -d $output_dir ]
@@ -23,4 +25,4 @@ if [ ! -d $output_dir ]
 fi	
 
 # Run LDA model
-python topics.py ${output_dir}/final.beta ../data/vocab.txt 20 > ${output_dir}top_topic_words.txt
+python topics.py ${output_dir}final.beta ${data_dir}ap_vocab.txt 20 > ${output_dir}top_topic_words.txt

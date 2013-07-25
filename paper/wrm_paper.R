@@ -12,10 +12,11 @@ if(length(c.args)==0){
   iter <- 10
   debug <- TRUE
   old.init <- FALSE
-  data.dir <- "/n/airoldifs2/lab/jbischof/word_rate_output/"
+  main.dir <- "/n/airoldifs2/lab/jbischof/word_rate_output/"
+  data.dir <- paste0(main.dir,"data/")
   debug.tag <- ifelse(debug,"_debug","")
   run.tag <- paste0("_k",ntopics,"_i",iter,debug.tag)
-  out.dir <- paste0(data.dir,"run",run.tag,"/")
+  out.dir <- paste0(main.dir,"run",run.tag,"/")
 } else {
   ntopics <- as.numeric(c.args[1])
   iter <- as.numeric(c.args[2])
@@ -40,7 +41,7 @@ file.out <- paste0(out.dir,"wrm_out.RData")
 ## Load in data
 data.file <- paste0(data.dir,"ap_ragarray.txt")
 doc.length.file <- paste0(data.dir,"ap_doclengths.txt")
-vocab.file <- paste0(data.dir,"vocab.txt")
+vocab.file <- paste0(data.dir,"ap_vocab.txt")
 wc.all <- read.table(file=data.file,sep="\t",
                      colClasses="integer",
                      col.names=c("d","f","count"))
