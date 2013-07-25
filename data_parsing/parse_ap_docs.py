@@ -85,8 +85,9 @@ for count_list in doc_wc_list:
 			word_str = "%s:%d" % (word_id,count)
 			doc_lda_list.append(word_str)
 	ntokens = len(doc_lda_list)
-	doc_lda_str = string.join(doc_lda_list," ")
-	outstring = str(ntokens) + " " + doc_lda_str + "\n"
-	outfile_lda.write(outstring)
+	if ntokens > 0:
+		doc_lda_str = string.join(doc_lda_list," ")
+		outstring = str(ntokens) + " " + doc_lda_str + "\n"
+		outfile_lda.write(outstring)
 
 outfile_lda.close()

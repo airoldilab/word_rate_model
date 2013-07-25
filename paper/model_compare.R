@@ -5,10 +5,11 @@ source("../R/wrm_fit.R")
 source("../R/greedy_topic_match.R")
 
 ## Folders were output is stored
-output.dir <- "/n/airoldifs2/lab/jbischof/word_rate_output/"
-plot.output.dir <- paste0(output.dir,"plots/")
-sum.output.dir <- paste0(output.dir,"topic_sum/")
-lda.output.dir <- paste0(output.dir,"lda_output/")
+main.dir <- "/n/airoldifs2/lab/jbischof/word_rate_output/"
+data.dir <- paste0(main.dir,"data/")
+plot.output.dir <- paste0(main.dir,"plots/")
+sum.output.dir <- paste0(main.dir,"topic_sum/")
+lda.output.dir <- paste0(main.dir,"lda_output/")
 
 ## Vector of topics used for each model
 ntopics.vec <- as.character(c(10,25,50,100))
@@ -24,15 +25,15 @@ margwc <- margwc.sort[,1]
 names(margwc) <- rownames(margwc.sort)
 
 ## Load in vocab vector
-vocab.file <- paste0(output.dir,"vocab.txt")
+vocab.file <- paste0(data.dir,"vocab.txt")
 vocab <- read.table(file=vocab.file,colClasses="character")[,1]
 names(vocab) <- 1:length(vocab) - 1
-## Load in stop word list and figure out which of vocab is stop words
-stop.file <- paste0(output.dir,"english.stop")
-stop.words.raw <- read.table(file=stop.file,colClasses="character")[,1]
-stop.words <- sapply(stop.words.raw,gsub,pattern="'",replacement="")
-pos.vocab.stop <- which(vocab %in% stop.words)
-vocab.stopped <- vocab[-pos.vocab.stop]
+## ## Load in stop word list and figure out which of vocab is stop words
+## stop.file <- paste0(data.dir,"english.stop")
+## stop.words.raw <- read.table(file=stop.file,colClasses="character")[,1]
+## stop.words <- sapply(stop.words.raw,gsub,pattern="'",replacement="")
+## pos.vocab.stop <- which(vocab %in% stop.words)
+## vocab.stopped <- vocab[-pos.vocab.stop]
 
 
 ## Load matrices of word-topic rates
@@ -48,7 +49,7 @@ dtr.psi <- c()
 ## dtr.frex.norm.list <- list()
 for(ntopics in ntopics.vec){
   iter.use <- iter.use.vec[ntopics]
-  output.file <- paste0(output.dir,"run_k",ntopics,"_i",
+  output.file <- paste0(main.dir,"run_k",ntopics,"_i",
                         iter.use,"/wrm_out.RData")
   ## Load in output object
   load(output.file)
@@ -146,11 +147,11 @@ for (model in models){
                                    as.numeric(topic.match.list[[ntopics]][,model])]
     rate.mat <- rate.list[[ntopics]][-pos.vocab.stop,
                                      as.numeric(topic.match.list[[ntopics]][,model])]
-    rownames(exc.mat) <- rownames(rate.mat) <- names(vocab.stopped)
+    rownames(exc.mat) <- rownames(rate.mat) <- names(vocab)
     frex.sum <- get.top.words(rate.mat=rate.mat,exc.mat=exc.mat,
-                              n.get=nwords.sum,vocab=vocab.stopped,type="frex",weight.freq=0.5)
+                              n.get=nwords.sum,vocab=vocab,type="frex",weight.freq=0.5)
     freq.sum <- get.top.words(rate.mat=rate.mat,n.get=nwords.sum,
-                              vocab=vocab.stopped,type="freq",weight.freq=0.5)
+                              vocab=vocab,type="freq",weight.freq=0.5)
     
     frex.file.out <- paste0(sum.output.dir,model,"_",ntopics,"_frex_ap_sum.txt")
     freq.file.out <- paste0(sum.output.dir,model,"_",ntopics,"_freq_ap_sum.txt")

@@ -46,16 +46,19 @@ wrm.fit <- function(
   f.index <- factor(f.index)
   ndraws <- iter + burnin
 
+  # Check consistency of inputs
+  if(!(D == length(doc.length.vec))){stop("Number of documents in 'wc' not equal to length of doc.length.vec")}
+
   ## Is position from old run provided?
   old.run <- !is.null(wrm.old)
   
   ## Initialize parameters from old run or use uniform start for thetas
   if(old.run){
-    theta.mat <- wrm.old$ave.param.list$theta.mat
-    lambda.mat <- exp(wrm.old$ave.param.list$mu.mat)
-    alpha <- wrm.old$ave.param.list$alpha
-    beta <- wrm.old$ave.param.list$beta
-    psi <- wrm.old$ave.param.list$psi
+    theta.mat <- wrm.old$last.param.list$theta.mat
+    lambda.mat <- exp(wrm.old$last.param.list$mu.mat)
+    alpha <- wrm.old$last.param.list$alpha
+    beta <- wrm.old$last.param.list$beta
+    psi <- wrm.old$last.param.list$psi
   } else {
     theta.mat <- matrix(1/ntopics,ncol=ntopics,nrow=D)
   }
@@ -201,8 +204,13 @@ wrm.fit <- function(
     
   }
 
+  ## Save last draw so that sampler can be restarted
+  last.param.list <- list(mu.mat=mu.mat,theta.mat=theta.mat,phi.mat=phi.mat,sigma.vec=sigma.vec,
+                          alpha=alpha,beta=beta,psi=psi)
+
   ## Return posterior draws of lambda and theta matrices
   out.list <- list(ave.param.list=ave.param.list,final.param.list=final.param.list,
+                   last.param.list=last.param.list,
                    ntopics=ntopics,burnin=burnin,iter=iter)
 
   ## Add in burnin draws if requested
