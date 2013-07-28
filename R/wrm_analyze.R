@@ -191,7 +191,7 @@ get.frex.plot <- function(wrm.out,vocab,
     png(title.png,width=size.inch,height=size.inch,units="in",res=res.plot)
     plot(mu.vec.zoom,logit.phi.vec.zoom,main=title.plot,
          ylab=expression(paste("Exclusivity: ",logit(phi[fk]))),
-         xlab=expression(paste("Frequency: ",mu[fk])),cex=cex.plot,col="white")
+         xlab=expression(paste("Frequency: ",log(lambda[fk]))),cex=cex.plot,col="white")
     text(mu.vec.zoom, logit.phi.vec.zoom, labels = labels.zoom, adj = NULL,
          pos = NULL, offset = 0, vfont = NULL,
          cex = cex.plot, col = NULL, font = NULL)
@@ -202,7 +202,7 @@ get.frex.plot <- function(wrm.out,vocab,
     png(title.png,width=size.inch,height=size.inch,units="in",res=res.plot)
     plot(mu.vec.full,logit.phi.vec.full,main=title.plot,
          ylab=expression(paste("Exclusivity: ",logit(phi[fk]))),
-       xlab=expression(paste("Frequency: ",mu[fk])),cex=0.5)
+       xlab=expression(paste("Frequency: ",log(lambda[fk]))),cex=0.5)
     rect(xleft=quant.mu[2],
          ybottom=quant.phi[2],
          ##xright=lim.mu[2]+mar.mu,
@@ -288,10 +288,10 @@ hel.dist <- function(log.prob.vec1,log.prob.vec2){
 }
 
 ## Function to calculate average rank correlations for matrix of summaries
-rank.cor.dist.mat <- function(score.mat,nwords="all",ave=TRUE){
+rank.cor.dist.mat <- function(score.mat,nwords="all",ave=TRUE,method="kendall"){
   if(!nwords=="all"){score.mat <- score.mat[1:nwords,]}
   # Rank correlation matrix
-  cor.mat <- cor(score.mat,method="spearman")
+  cor.mat <- cor(score.mat,method=method)
   # Vector of unique correlation metrics
   cor.vec <- cor.mat[lower.tri(cor.mat)]
   # Average unique correlation if requested

@@ -7,7 +7,7 @@
 #BSUB -u jbischof@fas.harvard.edu
 
 # THE JOB ARRAY:
-#BSUB -J "wrm_demo[1-4]"
+#BSUB -J "wrm_demo[3]"
 
 # OUTPUT AND ERROR FILES
 #BSUB -o /n/airoldifs2/lab/jbischof/word_rate_output/LSF_dump/out_%J.%I
@@ -16,13 +16,14 @@
 # BASH CODE THAT YOU WANT TO RUN:
 # Figure out the number of topics for the job index
 declare -a ntopics_list=(10 25 50 100)
-declare -a burnin_list=(1500 2500 3000 5000)
+#declare -a burnin_list=(1500 2500 3000 5000)
+declare -a burnin_list=(1000 1000 1000 1000)
 job_index=$(expr ${LSB_JOBINDEX} - 1)
 ntopics=${ntopics_list[$job_index]}
 burnin=${burnin_list[$job_index]}
 iter=1000
-debug=1
-old_init=0
+debug=0
+old_init=1
 
 # Debug filetag
 if [ $debug -eq 0 ]

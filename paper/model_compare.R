@@ -18,14 +18,14 @@ iter.use.vec <- rep(1000,length(ntopics.vec))
 names(iter.use.vec) <- ntopics.vec
 
 ## Load vector of marginal word counts
-file.margwc <- paste0(output.dir,"ap_margwc.txt")
+file.margwc <- paste0(data.dir,"ap_margwc.txt")
 margwc.nosort <- read.table(file.margwc,row.names=1)
 margwc.sort <- margwc.nosort[order(as.numeric(rownames(margwc.nosort))),,drop=FALSE]
 margwc <- margwc.sort[,1]
 names(margwc) <- rownames(margwc.sort)
 
 ## Load in vocab vector
-vocab.file <- paste0(data.dir,"vocab.txt")
+vocab.file <- paste0(data.dir,"ap_vocab.txt")
 vocab <- read.table(file=vocab.file,colClasses="character")[,1]
 names(vocab) <- 1:length(vocab) - 1
 ## ## Load in stop word list and figure out which of vocab is stop words
@@ -143,15 +143,25 @@ for (model in models){
   rate.list <- get(paste0(model,".rate.list"))
 
   for(ntopics in ntopics.vec){
-    exc.mat <- exc.list[[ntopics]][-pos.vocab.stop,
-                                   as.numeric(topic.match.list[[ntopics]][,model])]
-    rate.mat <- rate.list[[ntopics]][-pos.vocab.stop,
-                                     as.numeric(topic.match.list[[ntopics]][,model])]
+    exc.mat <- exc.list[[ntopics]][,as.numeric(topic.match.list[[ntopics]][,model])]
+    rate.mat <- rate.list[[ntopics]][,as.numeric(topic.match.list[[ntopics]][,model])]
     rownames(exc.mat) <- rownames(rate.mat) <- names(vocab)
     frex.sum <- get.top.words(rate.mat=rate.mat,exc.mat=exc.mat,
                               n.get=nwords.sum,vocab=vocab,type="frex",weight.freq=0.5)
     freq.sum <- get.top.words(rate.mat=rate.mat,n.get=nwords.sum,
                               vocab=vocab,type="freq",weight.freq=0.5)
+
+    if(ntopics == "10"){
+      print(model)
+      print("frex")
+      xtable(frex.sum)
+      table.frex <- table(as.vector(frex.sum))
+      print(head(table.frex[rev(order(table.frex))],n=10))
+      print("freq")
+      xtable(freq.sum)
+      table.freq <- table(as.vector(freq.sum))
+      print(head(table.freq[rev(order(table.freq))],n=10))
+    }
     
     frex.file.out <- paste0(sum.output.dir,model,"_",ntopics,"_frex_ap_sum.txt")
     freq.file.out <- paste0(sum.output.dir,model,"_",ntopics,"_freq_ap_sum.txt")
@@ -254,6 +264,8 @@ for(ntopics.plot in ntopics.vec){
 
 ## Rank correlation metric
 nwords.sim <- "all"
+method <- "spearman"
+nwords.sim <- 50
 dtr.frex.cor <- sapply(dtr.frex.list,rank.cor.dist.mat,
                        nwords=nwords.sim,ave=TRUE)
 dtr.rate.cor <- sapply(dtr.rate.list,rank.cor.dist.mat,
@@ -271,7 +283,7 @@ print(xtable(cor.mat,digits=3))
 
 ## Unique words metric
 ## Need to get this in terms of proportion of total possible unique words
-nwords.vec <- c(10,25,50,100,250)
+nwords.vec <- c(5,10,25,50,100)
 for(nwords in nwords.vec){
   dtr.frex.unique <- sapply(dtr.frex.list,unique.words.mat,
                             nwords=nwords)
