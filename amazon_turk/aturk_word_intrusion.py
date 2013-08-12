@@ -3,11 +3,12 @@ import random
 import string
 from get_topic_sum import *
 
-def gen_wi_csv(topic_sum_filenames_dict,outfilename,nwords_sum=5,nwords_sum_full=10, \
+def gen_wi_csv(topic_sum_filenames_dict,outfilename,outfilename_ans,nwords_sum=5,nwords_sum_full=10, \
 n_replicates=1,n_tasks=10):
 
 	nmodels = len(topic_sum_filenames_dict)
 	outfile = open(outfilename,'w')
+	outfile_ans = open(outfilename_ans,'w')
 	
 	# Write header of output file
 	header = ""
@@ -28,6 +29,7 @@ n_replicates=1,n_tasks=10):
 	#print full_model_sum_dict
 	
 	# Generate tasks
+	question_counter = 0
 	model_name_list = topic_sum_filenames_dict.keys()
 	for j in range(n_tasks):
 		task_output = []
@@ -48,10 +50,17 @@ n_replicates=1,n_tasks=10):
 				model_topic_list.append(intrude_word)
 				# Shuffle order of summary
 				random.shuffle(model_topic_list)
-				#print "model_intrude_list", model_intrude_list
-				#print model_topic_list
-				#print model_name
-				task_output += [model_name] + model_topic_list
+				# Get intruder position
+				intrude_pos = model_topic_list.index(intrude_word) + 1
+				# Create question id
+				# First need to create question number
+				question_num = question_counter
+				question_counter += 1
+				question_id = model_name + "_q" + str(question_num)
+				task_output += [question_id] + model_topic_list
+				# Write intruder position to answer file
+				outstring_ans = "%s,%d\n" % (question_id,intrude_pos)
+				outfile_ans.write(outstring_ans)
 		#print task_output
 		outstring = string.join(task_output,",") + "\n"
 		outfile.write(outstring)
