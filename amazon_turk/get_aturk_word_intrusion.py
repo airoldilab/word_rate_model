@@ -2,7 +2,8 @@
 from aturk_word_intrusion import *
 import sys
 
-main_dir =  "/n/airoldifs2/lab/jbischof/word_rate_output/"
+#main_dir =  "/n/airoldifs2/lab/jbischof/word_rate_output/"
+main_dir =  "/home/jbischof/Project_output/word_rate_model/"
 data_dir = main_dir + "topic_sum/"
 out_dir = main_dir + "aturk_input/"
 
