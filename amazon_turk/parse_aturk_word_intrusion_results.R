@@ -6,13 +6,22 @@ res.agg <- function(vec,nrep){
   return(out)
 }
 
+# Inputs
+t <- 50
+r <- 2
 
 ## Load in file results file
 main.dir <- "/home/jbischof/Project_output/word_rate_model/"
 input.dir <- paste0(main.dir,"aturk_input/")
 output.dir <- paste0(main.dir,"aturk_output/")
-infile.res <- paste0(output.dir,"wi_t100_j100_Batch_1241769_batch_results.csv")
+infile.res <- paste0(output.dir,"wi_t",t,"_r",r,"_results.csv")
 tab.res <- read.csv(infile.res,header=TRUE)
+# Only keep accepted assignments if there are duplicates
+hit.dups <- tab.res$HITId[duplicated(tab.res$HITId)]
+for (hit in hit.dups){
+  which.remove <- which(tab.res$HITId == hit & tab.res$AssignmentStatus == "Rejected")
+  tab.res <- tab.res[-which.remove,]
+}
 njobs <- nrow(tab.res)
 nrep <- 2
 header <- colnames(tab.res)
@@ -25,9 +34,9 @@ tab.qid <- matrix(sapply(tab.qid.raw,function(x){strsplit(x,split="_q")[[1]][1]}
 tab.qans <- tab.res[,pos.qans]
 
 ## Load in answer key
-infile.key <- paste0(input.dir,"aturk_word_intrusion_t100_j100_r2_ans.csv")
+infile.key <- paste0(output.dir,"wi_t",t,"_r",r,"_ans.csv")
 tab.key <- read.csv(infile.key,header=FALSE)
-key.mat <- matrix(tab.key[1:njobs,2],nrow=njobs,byrow=TRUE)
+key.mat <- matrix(tab.key[,2],nrow=njobs,byrow=TRUE)
 score.mat <- tab.qans-key.mat == 0
 
 names.order <- tab.qid[1,][order(tab.qid[1,])]
@@ -44,4 +53,6 @@ print(agg.res)
 print(prop.agg.res)
 
 worker.analysis.raw <- cbind(tab.res$WorkerId,apply(worker.res,1,sum,na.rm=TRUE))
-do.call(rbind,tapply(worker.analysis.raw[,2],worker.analysis.raw[,1],function(x){c(mean(x)/6,length(x))}))
+worker.analysis <- do.call(rbind,tapply(worker.analysis.raw[,2],worker.analysis.raw[,1],function(x){c(mean(x)/6,length(x))}))
+colnames(worker.analysis) <- c("Success rate","Njobs")
+print(worker.analysis)

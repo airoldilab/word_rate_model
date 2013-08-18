@@ -47,6 +47,8 @@ n_replicates=1,n_tasks=10):
 				model_intrude_list = string.split(full_model_sum_dict[model_name][topic_intrude],"   ")
 				# Choose intruder word and add it to topic summary
 				intrude_word =  model_intrude_list[random.randrange(nwords_sum_full)]
+				while intrude_word in model_topic_list:
+					intrude_word =  model_intrude_list[random.randrange(nwords_sum_full)]
 				model_topic_list.append(intrude_word)
 				# Shuffle order of summary
 				random.shuffle(model_topic_list)
