@@ -58,7 +58,7 @@ n_replicates=1,n_tasks=10):
 				# First need to create question number
 				question_num = question_counter
 				question_counter += 1
-				question_id = model_name + "_q" + str(question_num)
+				question_id = model_name + "_t" + str(topic_choose) + "_q" + str(question_num)
 				task_output += [question_id] + model_topic_list
 				# Write intruder position to answer file
 				outstring_ans = "%s,%d\n" % (question_id,intrude_pos)

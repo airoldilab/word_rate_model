@@ -90,7 +90,7 @@ for(ntopics in ntopics.use){
   ## print(relpref.res)
   ## print(prop.relpref.res)
   
-  ## table((table(tab.res$HITId)))
+  print(table((table(tab.res$HITId))))
   
 }
 
@@ -169,5 +169,5 @@ for(j in 1:nmodels){
   arrows(x0=ntopics.use,x1=ntopics.use,y0=lower.ci.vec,y1=upper.ci.vec,
          angle=90,code=3,length=0.1)
 }
-legend(x="topleft",legend=pretty.model.names,lty=model.lty,pch=model.pch)
+legend(x="bottomleft",legend=pretty.model.names,lty=model.lty,pch=model.pch)
 dev.off()
