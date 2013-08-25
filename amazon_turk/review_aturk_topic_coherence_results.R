@@ -1,5 +1,4 @@
-## Load helper functions
-source("parse_aturk_functions.R")
+## Script to automatically approve or reject aturk assignments
 
 infile <- comandArgs(TRUE)
 infile.root <- strsplit(infile,".csv")[[1]][1]
@@ -12,12 +11,11 @@ njobs <- nrow(tab.res)
 
 ## Get appropriate cols of output for input/output parsing 
 header <- colnames(tab.res)
-pos.qid <- grep(pattern="Input.q[0-9]?id",x=header)
-pos.qans <- grep(pattern="Answer.q[0-9]{1}$",x=header)
-
+pos.qans <- grep(pattern="Answer.topic[0-9]{2}$",x=header)
+pos.relans <- grep(pattern="Answer.relpref",x=header)
 
 ## Isolate the answer columns
-tab.qans <- tab.res[,pos.qans]
+tab.qans <- tab.res[,c(pos.qans,pos.relans)]
 
 tab.res$Approve <- apply(tab.qans,1,function(row){
   ifelse(all(!is.na(row)),"x","")})

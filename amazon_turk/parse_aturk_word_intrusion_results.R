@@ -23,8 +23,15 @@ for(ntopics in ntopics.use){
   ## Only keep accepted assignments if there are duplicates
   hit.dups <- tab.res$HITId[duplicated(tab.res$HITId)]
   for (hit in hit.dups){
-    which.remove <- which(tab.res$HITId == hit & tab.res$AssignmentStatus == "Rejected")
-    tab.res <- tab.res[-which.remove,]
+    n.reject <- length(which(tab.res$HITId == hit & tab.res$AssignmentStatus == "Rejected"))
+    if(n.reject >= 1){
+      which.remove <- which(tab.res$HITId == hit & tab.res$AssignmentStatus == "Rejected")
+    } else {
+      which.remove <- which(tab.res$HITId == hit)[-1]
+    }
+    if(length(which.remove > 0)){
+      tab.res <- tab.res[-which.remove,]
+    }
   }
 
   ## Total number of jobs completed
@@ -39,7 +46,8 @@ for(ntopics in ntopics.use){
   tab.qid.raw <- as.vector(t(as.matrix(tab.res[,pos.qid])))
   tab.qid.check <- matrix(tab.qid.raw,ncol=6,byrow=TRUE)
   ## Get the model types of out the question ids to tabulate outcomes
-  tab.qid <- matrix(sapply(tab.qid.raw,function(x){strsplit(x,split="_q")[[1]][1]}),
+  tab.qid <- matrix(sapply(tab.qid.raw,function(x){
+    paste(strsplit(x,split="_")[[1]][1:3],collapse="_")}),
                     nrow=njobs,byrow=TRUE)
   ## Isolate the answer columns
   tab.qans <- tab.res[,pos.qans]
